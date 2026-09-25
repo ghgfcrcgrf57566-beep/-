@@ -9,6 +9,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: yemen_laws_app
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,11 +29,25 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Accept Android SDK licenses
-        run: yes | flutter doctor --android-licenses || true
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.6'
+
+      - name: Create Android local.properties
+        run: echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
+
+      - name: Restore Gradle wrapper
+        run: gradle -p android wrapper --gradle-version 8.6
+
+      - name: Verify Flutter project
+        run: flutter doctor -v
 
       - name: Install Flutter dependencies
         run: flutter pub get
+
+      - name: Analyze Dart code
+        run: flutter analyze
 
       - name: Build release APK
         run: flutter build apk --release
@@ -38,4 +56,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: yemen-law-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: yemen_laws_app/build/app/outputs/flutter-apk/app-release.apk
