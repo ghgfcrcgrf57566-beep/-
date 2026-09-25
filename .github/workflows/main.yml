@@ -32,13 +32,13 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.6'
+          gradle-version: '8.14'
 
       - name: Create Android local.properties
         run: echo "flutter.sdk=$FLUTTER_ROOT" > android/local.properties
 
       - name: Restore Gradle wrapper
-        run: gradle -p android wrapper --gradle-version 8.6
+        run: gradle -p android wrapper --gradle-version 8.14
 
       - name: Verify Flutter project
         run: flutter doctor -v
