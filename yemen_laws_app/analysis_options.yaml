@@ -1,5 +1,7 @@
 include: package:flutter_lints/flutter.yaml
 
+# Informational lints remain visible in CI but do not block the APK build.
+
 linter:
   rules:
     prefer_const_constructors: true
