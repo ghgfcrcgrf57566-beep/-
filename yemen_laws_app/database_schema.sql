@@ -1,10 +1,10 @@
 -- مخطط قاعدة بيانات موسوعة القوانين اليمنية
--- (مرجع مستقل - نفس المخطط المُستخدم فعليًا في tools/build_db.py)
 
 CREATE TABLE laws (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     short_name TEXT,
+    category TEXT,
     order_num INTEGER,
     articles_count INTEGER DEFAULT 0
 );
@@ -45,12 +45,43 @@ CREATE TABLE favorites (
     UNIQUE(mada_id)
 );
 
-CREATE VIRTUAL TABLE mawad_fts USING fts5(
-    body, number, content='mawad', content_rowid='id'
+CREATE TABLE article_notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    mada_id INTEGER NOT NULL REFERENCES mawad(id) ON DELETE CASCADE,
+    note_text TEXT NOT NULL,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(mada_id)
+);
+
+CREATE TABLE reading_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    mada_id INTEGER NOT NULL REFERENCES mawad(id) ON DELETE CASCADE,
+    opened_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE search_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    query TEXT NOT NULL,
+    searched_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE feedback_notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    body TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    sent INTEGER DEFAULT 0
+);
+
+CREATE VIRTUAL TABLE mawad_fts USING fts5 (
+    body,
+    number,
+    content='mawad',
+    content_rowid='id'
 );
 
 CREATE TRIGGER mawad_ai AFTER INSERT ON mawad BEGIN
-    INSERT INTO mawad_fts(rowid, body, number) VALUES (new.id, new.body, new.number);
+    INSERT INTO mawad_fts(rowid, body, number)
+    VALUES (new.id, new.body, new.number);
 END;
 
 CREATE INDEX idx_abwab_law ON abwab(law_id);
