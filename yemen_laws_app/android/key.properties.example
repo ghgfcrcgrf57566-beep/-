@@ -1,0 +1,9 @@
+# انسخ هذا الملف إلى android/key.properties (بدون .example) واملأ القيم
+# الحقيقية بعد إنشاء مفتاح التوقيع الخاص بك (راجع قسم "التوقيع للنشر" في
+# README.md). لا ترفع ملف key.properties أو ملف الـ.jks الحقيقي إلى أي
+# مستودع عام - هما سرّيان تمامًا.
+
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=upload
+storeFile=/المسار/الكامل/إلى/upload-keystore.jks

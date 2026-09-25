@@ -1,0 +1,6 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- إذن الإنترنت هنا مطلوب فقط لأدوات التطوير (Debug/DevTools) في وضع
+         التصحيح، ولا يُضاف إلى نسخة الإصدار (release) النهائية التي
+         يستخدمها المستخدم - التطبيق يعمل بالكامل بدون إنترنت. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+</manifest>
