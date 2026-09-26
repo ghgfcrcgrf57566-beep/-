@@ -59,7 +59,9 @@ export class GeminiProvider implements AIProvider {
           },
           contents,
           generationConfig: {
-            temperature: 0.1,
+            thinkingConfig: {
+              thinkingLevel: "medium",
+            },
             maxOutputTokens: 900,
           },
         }),
