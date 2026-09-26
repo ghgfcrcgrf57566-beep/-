@@ -711,7 +711,7 @@ class _SupremeCourtPdfViewerState extends State<SupremeCourtPdfViewer> {
             decoration: InputDecoration(
               hintText: 'أدخل رقم الصفحة',
               hintStyle: const TextStyle(color: Colors.white38),
-              suffixText: 'من ' + pages.toString(),
+              suffixText: 'من $pages',
               suffixStyle: const TextStyle(color: _gold),
             ),
           ),
@@ -817,11 +817,7 @@ class _SupremeCourtPdfViewerState extends State<SupremeCourtPdfViewer> {
             onPageError: (page, error) {
               if (!mounted) return;
               setState(() {
-                _error =
-                    'خطأ في صفحة ' +
-                    ((page ?? 0) + 1).toString() +
-                    ': ' +
-                    error.toString();
+                _error = 'خطأ في صفحة ${(page ?? 0) + 1}: $error';
               });
             },
           ),
@@ -832,8 +828,8 @@ class _SupremeCourtPdfViewerState extends State<SupremeCourtPdfViewer> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final height = constraints.maxHeight;
-                final trackTop = 42.0;
-                final trackBottom = 42.0;
+                const trackTop = 42.0;
+                const trackBottom = 42.0;
                 final trackHeight =
                     (height - trackTop - trackBottom).clamp(80.0, double.infinity).toDouble();
                 final thumbTop = trackTop + (_pageFraction * trackHeight);
