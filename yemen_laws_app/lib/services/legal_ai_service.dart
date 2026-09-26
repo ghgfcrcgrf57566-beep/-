@@ -18,11 +18,14 @@ class LegalAiSource {
     score: (j['score'] as num?)?.toDouble(),
   );
 }
+
 class LegalAiResult {
   final String answer;
   final List<LegalAiSource> sources;
-  const LegalAiResult({required this.answer, required this.sources});
+  final String? conversationId;
+  const LegalAiResult({required this.answer, required this.sources, this.conversationId});
 }
+
 class LegalAiService {
   LegalAiService._();
   static final instance = LegalAiService._();
@@ -34,7 +37,8 @@ class LegalAiService {
     if (q.length > 1200) throw const LegalAiException('السؤال طويل جداً. اختصره إلى 1200 حرف كحد أقصى.');
     if (baseUrl.isEmpty) throw const LegalAiException('لم يتم إعداد عنوان خادم المساعد بعد. ابنِ التطبيق باستخدام LEGAL_AI_BASE_URL.');
     try {
-      final r = await http.post(Uri.parse('$baseUrl/api/legal/ask'),
+      final r = await http.post(
+        Uri.parse('${baseUrl.replaceFirst(RegExp(r'\/$'), '')}/api/legal/ask'),
         headers: {'Content-Type':'application/json','Accept':'application/json','X-App-Version':'1.0.0'},
         body: jsonEncode({'question':q, if (conversationId != null) 'conversation_id':conversationId, if (history.isNotEmpty) 'history':history}),
       ).timeout(const Duration(seconds:45));
@@ -44,6 +48,7 @@ class LegalAiService {
       return LegalAiResult(
         answer:(body['answer'] ?? '').toString(),
         sources:((body['sources'] as List?) ?? const []).whereType<Map>().map((e)=>LegalAiSource.fromJson(Map<String,dynamic>.from(e))).toList(),
+        conversationId: body['conversation_id']?.toString(),
       );
     } on LegalAiException { rethrow; } catch (_) {
       throw const LegalAiException('تعذر الاتصال بخدمة المساعد. تحقق من اتصال الإنترنت وحاول مرة أخرى.');
@@ -51,6 +56,7 @@ class LegalAiService {
   }
   String _status(int s) => s==429 ? 'تم تجاوز حد الاستخدام مؤقتاً. حاول لاحقاً.' : s>=500 ? 'خادم المساعد غير متاح حالياً.' : 'حدث خطأ أثناء معالجة السؤال.';
 }
+
 class LegalAiException implements Exception {
   final String message;
   const LegalAiException(this.message);
