@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yemen_law/data/models/madda.dart';
 import 'package:yemen_law/services/chat_history_db.dart';
 import 'package:yemen_law/services/legal_ai_service.dart';
 
