@@ -49,6 +49,9 @@ jobs:
       - name: Analyze Dart code
         run: flutter analyze --no-fatal-infos
 
+      - name: Generate Android launcher icons
+        run: dart run flutter_launcher_icons
+
       - name: Resolve LEGAL_AI_BASE_URL
         env:
           SECRET_LEGAL_AI_BASE_URL: ${{ secrets.LEGAL_AI_BASE_URL }}
