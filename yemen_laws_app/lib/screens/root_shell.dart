@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import '../core/constants.dart';
 import 'coming_soon_screen.dart';
@@ -195,20 +196,60 @@ class _HomeTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      AppConstants.appNameAr,
-      textAlign: TextAlign.center,
-      style: const TextStyle(
-        color: Color(0xFFE2BA70),
-        fontSize: 27,
-        fontWeight: FontWeight.w800,
-        height: 1.1,
-        letterSpacing: 0.2,
-        shadows: [
-          Shadow(color: Colors.black87, blurRadius: 10, offset: Offset(0, 4)),
-          Shadow(color: Color(0x663A210C), blurRadius: 18),
-        ],
-      ),
+    final settings = context.watch<SettingsProvider>();
+    final isDark = settings.themeMode == ThemeMode.dark;
+
+    return Row(
+      textDirection: TextDirection.rtl,
+      children: [
+        IconButton(
+          tooltip: isDark ? 'الوضع النهاري' : 'الوضع الليلي',
+          onPressed: () {
+            settings.setThemeMode(
+              isDark ? ThemeMode.light : ThemeMode.dark,
+            );
+          },
+          icon: Icon(
+            isDark ? Icons.nightlight_round : Icons.wb_sunny_rounded,
+            size: 26,
+            color: const Color(0xFFE2BA70),
+          ),
+          style: IconButton.styleFrom(
+            backgroundColor: const Color(0x441A100B),
+            side: const BorderSide(
+              color: Color(0x88E1C28C),
+              width: 1,
+            ),
+            shape: const CircleBorder(),
+            padding: const EdgeInsets.all(10),
+          ),
+        ),
+        const Expanded(
+          child: Text(
+            AppConstants.appNameAr,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFFE2BA70),
+              fontSize: 27,
+              fontWeight: FontWeight.w800,
+              height: 1.1,
+              letterSpacing: 0.2,
+              shadows: [
+                Shadow(
+                  color: Colors.black87,
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+                Shadow(
+                  color: Color(0x663A210C),
+                  blurRadius: 18,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 48),
+      ],
     );
   }
 }
