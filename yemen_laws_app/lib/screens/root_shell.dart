@@ -264,13 +264,6 @@ class _HomeTitle extends StatelessWidget {
                 mode: ThemeMode.light,
                 selected: settings.themeMode == ThemeMode.light,
               ),
-              _ThemeChoice(
-                icon: Icons.brightness_auto_rounded,
-                title: 'تلقائي',
-                subtitle: 'يتبع إعداد الوضع في الهاتف',
-                mode: ThemeMode.system,
-                selected: settings.themeMode == ThemeMode.system,
-              ),
               const SizedBox(height: 10),
             ],
           ),
@@ -286,11 +279,9 @@ class _HomeTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
     final isDark = context.isDark;
-    final modeIcon = settings.themeMode == ThemeMode.system
-        ? Icons.brightness_auto_rounded
-        : isDark
-            ? Icons.nightlight_round
-            : Icons.wb_sunny_rounded;
+    final modeIcon = isDark
+        ? Icons.nightlight_round
+        : Icons.wb_sunny_rounded;
 
     return Row(
       textDirection: TextDirection.rtl,
