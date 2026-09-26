@@ -675,7 +675,7 @@ class _SupremeCourtPdfViewerState extends State<SupremeCourtPdfViewer> {
   double get _pageFraction {
     final total = _pages ?? 1;
     if (total <= 1) return 0;
-    return (_page / (total - 1)).clamp(0.0, 1.0);
+    return (_page / (total - 1)).clamp(0.0, 1.0).toDouble();
   }
 
   Future<void> _setPage(int page) async {
@@ -833,7 +833,7 @@ class _SupremeCourtPdfViewerState extends State<SupremeCourtPdfViewer> {
                 final trackTop = 42.0;
                 final trackBottom = 42.0;
                 final trackHeight =
-                    (height - trackTop - trackBottom).clamp(80.0, double.infinity);
+                    (height - trackTop - trackBottom).clamp(80.0, double.infinity).toDouble();
                 final thumbTop = trackTop + (_pageFraction * trackHeight);
 
                 return GestureDetector(
@@ -844,7 +844,7 @@ class _SupremeCourtPdfViewerState extends State<SupremeCourtPdfViewer> {
                     final local = Offset(
                       0,
                       (details.localPosition.dy - trackTop)
-                          .clamp(0.0, trackHeight),
+                          .clamp(0.0, trackHeight).toDouble(),
                     );
                     _scrubTo(local, trackHeight);
                   },
@@ -908,7 +908,7 @@ class _SupremeCourtPdfViewerState extends State<SupremeCourtPdfViewer> {
                         ),
                         if (_scrubbing)
                           Positioned(
-                            top: (thumbTop - 14).clamp(0.0, height - 34),
+                            top: (thumbTop - 14).clamp(0.0, height - 34).toDouble(),
                             left: 0,
                             child: Container(
                               width: 52,
