@@ -3,8 +3,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../core/app_config.dart';
-import '../data/models/madda.dart';
-import '../data/repositories/laws_repository.dart';
 import 'chat_history_db.dart';
 
 class LegalAiSource {
@@ -72,7 +70,6 @@ class LegalAiService {
 
   static final instance = LegalAiService._();
 
-  final LawsRepository _lawsRepository = LawsRepository.instance;
   final ChatHistoryDb _historyDb = ChatHistoryDb.instance;
 
   Future<LegalAiResult> ask({
@@ -92,39 +89,8 @@ class LegalAiService {
       );
     }
 
-    // الأولوية المطلقة: ابحث أولاً داخل قاعدة القوانين المحلية.
-    // أي نتيجة محلية تعني التوقف هنا وعدم الاتصال بالـBackend/Gemini.
-    List<Madda> localResults;
-    try {
-      localResults = await _lawsRepository.searchForLegalAssistant(
-        q,
-        limit: 8,
-      );
-    } catch (_) {
-      throw const LegalAiException(
-        'تعذر البحث في قاعدة القوانين المحلية حاليًا. لم يتم إرسال السؤال إلى خدمة الذكاء الاصطناعي.',
-      );
-    }
-
-    if (localResults.isNotEmpty) {
-      final sources = localResults.map(LegalAiSource.fromMadda).toList();
-      final answer = _buildLocalAnswer(sources);
-
-      await _saveHistorySafely(
-        query: q,
-        response: answer,
-        source: 'local_db',
-      );
-
-      return LegalAiResult(
-        answer: answer,
-        sources: sources,
-        conversationId: conversationId,
-        responseSource: 'local_db',
-      );
-    }
-
-    // لا يوجد نص محلي: هنا فقط يسمح بالانتقال إلى Backend/Gemini.
+    // المساعد يعمل بالبحث عبر الإنترنت فقط.
+    // لا نبحث في قاعدة القوانين المحلية ولا نستخدمها لتحديد إجابة السؤال.
     final baseUrl = AppConfig.legalAiBaseUrl.trim().replaceFirst(
           RegExp(r'\/$'),
           '',
