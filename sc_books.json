@@ -1,4 +1,3 @@
-
 [
   {
     "id": "sc_01",
@@ -7,7 +6,7 @@
     "description": "المبادئ والقواعد القضائية المستنبطة من أحكام الدوائر الجزائية والمدنية.",
     "file_name": "sc_book_01.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_01.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_01.pdf"
   },
   {
     "id": "sc_02",
@@ -16,7 +15,7 @@
     "description": "القواعد القانونية المبوبة التي أرتأتها المحكمة العليا في قضاياها الصادرة.",
     "file_name": "sc_book_02.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_02.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_02.pdf"
   },
   {
     "id": "sc_03",
@@ -25,7 +24,7 @@
     "description": "تجميع للمبادئ القضائية والإجراءات القانونية المعتمدة أمام دوائر المحكمة.",
     "file_name": "sc_book_03.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_03.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_03.pdf"
   },
   {
     "id": "sc_04",
@@ -34,7 +33,7 @@
     "description": "قواعد ومبادئ قضائية منسقة لتسهيل التطبيق القانوني والرجوع إليها عند نظر الطعون.",
     "file_name": "sc_book_04.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_04.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_04.pdf"
   },
   {
     "id": "sc_05",
@@ -43,7 +42,7 @@
     "description": "تطبيقات الأحكام القضائية المستقرة في المسائل الجزائية والمدنية.",
     "file_name": "sc_book_05.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_05.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_05.pdf"
   },
   {
     "id": "sc_06",
@@ -52,7 +51,7 @@
     "description": "المبادئ القضائية الاستئنافية والطعون الصادرة عن قضاء المحكمة العليا.",
     "file_name": "sc_book_06.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_06.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_06.pdf"
   },
   {
     "id": "sc_07",
@@ -61,7 +60,7 @@
     "description": "تصنيف وتبويب للقواعد التي تقررها الدوائر القضائية في القضايا المعروضة.",
     "file_name": "sc_book_07.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_07.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_07.pdf"
   },
   {
     "id": "sc_08",
@@ -70,7 +69,7 @@
     "description": "القواعد القانونية والمبادئ القضائية للعمل القضائي الميداني والتنفيذي.",
     "file_name": "sc_book_08.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_08.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_08.pdf"
   },
   {
     "id": "sc_09",
@@ -79,7 +78,7 @@
     "description": "القواعد المستنبطة من القرارات والأحكام النهائية لدوائر المحكمة.",
     "file_name": "sc_book_09.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_09.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_09.pdf"
   },
   {
     "id": "sc_10",
@@ -88,7 +87,7 @@
     "description": "مبادئ إجرائية وموضوعية منسقة ومعتمدة من المكتب الفني.",
     "file_name": "sc_book_10.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_10.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_10.pdf"
   },
   {
     "id": "sc_11",
@@ -97,7 +96,7 @@
     "description": "نشر المبادئ المعتمدة في الطعون القضائية لتوحيد الاجتهاد.",
     "file_name": "sc_book_11.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_11.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_11.pdf"
   },
   {
     "id": "sc_12",
@@ -106,7 +105,7 @@
     "description": "القواعد القضائية المقررة في طعون القضايا المدنية والجنائية.",
     "file_name": "sc_book_12.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_12.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_12.pdf"
   },
   {
     "id": "sc_13",
@@ -115,7 +114,7 @@
     "description": "تبويب وتصنيف قانوني للأحكام والمبادئ الصادرة عن دوائر المحكمة.",
     "file_name": "sc_book_13.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_13.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_13.pdf"
   },
   {
     "id": "sc_14",
@@ -124,7 +123,7 @@
     "description": "المبادئ المرفوعة والمستنبطة لمساندة العمل القضائي وتوحيد الأحكام.",
     "file_name": "sc_book_14.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_14.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_14.pdf"
   },
   {
     "id": "sc_15",
@@ -133,7 +132,7 @@
     "description": "أحكام وقواعد قانونية مستنبطة تفيد القضاة والباحثين في المجال القانوني.",
     "file_name": "sc_book_15.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_15.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_15.pdf"
   },
   {
     "id": "sc_16",
@@ -142,7 +141,7 @@
     "description": "المبادئ القضائية الحديثة المنشورة رسمياً عبر المكتب الفني.",
     "file_name": "sc_book_16.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_16.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_16.pdf"
   },
   {
     "id": "sc_17",
@@ -151,7 +150,7 @@
     "description": "القواعد الإجرائية والتنفيذية المقررة من قضاة المحكمة العليا.",
     "file_name": "sc_book_17.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_17.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_17.pdf"
   },
   {
     "id": "sc_18",
@@ -160,7 +159,7 @@
     "description": "استخلاص المبادئ والقواعد القضائية المستجدة الصادرة عن الأحكام.",
     "file_name": "sc_book_18.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_18.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_18.pdf"
   },
   {
     "id": "sc_19",
@@ -169,7 +168,7 @@
     "description": "القواعد والمبادئ الفقهية والقانونية المقررة في مختلف الدوائر.",
     "file_name": "sc_book_19.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_19.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_19.pdf"
   },
   {
     "id": "sc_20",
@@ -178,7 +177,7 @@
     "description": "الأعداد المعتمدة الحديثة للقواعد والقرارات القضائية الرسمية.",
     "file_name": "sc_book_20.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_20.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_20.pdf"
   },
   {
     "id": "sc_21",
@@ -187,6 +186,6 @@
     "description": "الجزء الحادي والعشرين من سلسلة القواعد القضائية والمبادئ المنشورة.",
     "file_name": "sc_book_21.pdf",
     "category": "supreme_court",
-    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/sc_book_21.pdf"
+    "download_url": "https://github.com/ghgfcrcgrf57566-beep/yemen_laws_app/releases/download/v1.0.0/book_21.pdf"
   }
 ]
