@@ -388,7 +388,7 @@ class LawsRepository {
       limit: limit,
     );
     return rows
-        .map((row) => ${row['query'] ?? ''}.trim())
+        .map((row) => (row['query'] ?? '').toString().trim())
         .where((value) => value.isNotEmpty)
         .toList();
   }
