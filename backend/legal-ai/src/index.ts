@@ -7,6 +7,7 @@ export interface Env {
   MAX_RESULTS: string;
   AI_MODEL: string;
   EMBEDDING_MODEL: string;
+  REINDEX_TOKEN: string;
 }
 type Source={article_id:number;law_name:string;article_number:string;article_text:string;chapter?:string|null;score?:number};
 
@@ -17,6 +18,22 @@ export default {async fetch(request:Request,env:Env):Promise<Response>{
   const url=new URL(request.url);
   if(request.method==="OPTIONS") return new Response(null,{status:204,headers:HEADERS});
   if(url.pathname==="/health") return json({ok:true,service:"yemen-laws-legal-ai"});
+  if(url.pathname==="/admin/reindex"){
+    if(request.method!=="POST") return json({error:"Method not allowed"},405);
+    if(!env.REINDEX_TOKEN || request.headers.get("authorization")!=="Bearer "+env.REINDEX_TOKEN) return json({error:"Unauthorized"},401);
+    const u=new URL(request.url);
+    const after=Number(u.searchParams.get("after")||0);
+    const limit=Math.min(Math.max(Number(u.searchParams.get("limit")||40),1),60);
+    if(!env.VECTOR_INDEX) return json({error:"Vectorize is not configured."},503);
+    const rows=await env.DB.prepare("SELECT id,law_id,number,body FROM mawad WHERE id>? ORDER BY id LIMIT ?").bind(after,limit).all<any>();
+    const articles=rows.results||[];
+    if(!articles.length) return json({done:true,next_after:after,processed:0});
+    const embeddings=await env.AI.run(env.EMBEDDING_MODEL,{text:articles.map((a:any)=>String(a.body))}) as {data:number[][]};
+    const vectors=articles.map((a:any,i:number)=>({id:String(a.id),values:embeddings.data[i]}));
+    await env.VECTOR_INDEX.upsert(vectors);
+    const next=Number(articles[articles.length-1].id);
+    return json({done:articles.length<limit,next_after:next,processed:articles.length});
+  }
   if(url.pathname!=="/api/legal/ask") return json({error:"Not found"},404);
   if(request.method!=="POST") return json({error:"Method not allowed"},405);
 
