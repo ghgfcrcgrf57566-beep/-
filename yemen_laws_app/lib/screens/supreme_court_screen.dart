@@ -549,8 +549,6 @@ class _BookCard extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              const _GoldBadge(icon: Icons.picture_as_pdf_rounded),
-              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -575,13 +573,15 @@ class _BookCard extends StatelessWidget {
                         fontSize: 12.5,
                       ),
                     ),
+                    const SizedBox(height: 5),
                     Text(
-                      '${book['subtitle'] ?? ''}',
-                      maxLines: 1,
+                      '${book['description'] ?? ''}',
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.right,
                       style: const TextStyle(
                         color: Colors.white54,
+                        height: 1.45,
                         fontSize: 11.5,
                       ),
                     ),
@@ -650,7 +650,7 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class SupremeCourtPdfViewer extends StatelessWidget {
+class SupremeCourtPdfViewer extends StatefulWidget {
   final String filePath;
   final String title;
 
@@ -661,26 +661,358 @@ class SupremeCourtPdfViewer extends StatelessWidget {
   });
 
   @override
+  State<SupremeCourtPdfViewer> createState() =>
+      _SupremeCourtPdfViewerState();
+}
+
+class _SupremeCourtPdfViewerState extends State<SupremeCourtPdfViewer> {
+  PDFViewController? _controller;
+  int? _pages;
+  int _page = 0;
+  String? _error;
+  bool _scrubbing = false;
+
+  double get _pageFraction {
+    final total = _pages ?? 1;
+    if (total <= 1) return 0;
+    return (_page / (total - 1)).clamp(0.0, 1.0);
+  }
+
+  Future<void> _setPage(int page) async {
+    final controller = _controller;
+    final pages = _pages;
+    if (controller == null || pages == null || pages < 1) return;
+    await controller.setPage(page.clamp(0, pages - 1));
+  }
+
+  Future<void> _showGoToPageDialog() async {
+    final pages = _pages;
+    if (pages == null || pages < 1) return;
+
+    final controller = TextEditingController();
+    final target = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1A1A1A),
+          title: const Text(
+            'الانتقال إلى صفحة',
+            style: TextStyle(color: _goldLight),
+          ),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            textAlign: TextAlign.center,
+            autofocus: true,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'أدخل رقم الصفحة',
+              hintStyle: const TextStyle(color: Colors.white38),
+              suffixText: 'من ' + pages.toString(),
+              suffixStyle: const TextStyle(color: _gold),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text(
+                'إلغاء',
+                style: TextStyle(color: Colors.white60),
+              ),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: _gold,
+                foregroundColor: Colors.black,
+              ),
+              onPressed: () {
+                final value = int.tryParse(controller.text.trim());
+                if (value == null || value < 1 || value > pages) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(
+                      content: Text('رقم الصفحة غير موجود'),
+                    ),
+                  );
+                  return;
+                }
+                Navigator.pop(dialogContext, value);
+              },
+              child: const Text('انتقال'),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+
+    if (target != null && mounted) {
+      await _setPage(target - 1);
+    }
+  }
+
+  void _scrubTo(Offset localPosition, double height) {
+    final pages = _pages;
+    if (pages == null || pages < 2 || height <= 0) return;
+    final fraction = (localPosition.dy / height).clamp(0.0, 1.0);
+    final target = (fraction * (pages - 1)).round();
+    if (target != _page) {
+      _setPage(target);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
         backgroundColor: _surface,
         title: Text(
-          title,
+          widget.title,
           overflow: TextOverflow.ellipsis,
-          style:
-              const TextStyle(color: Colors.white, fontSize: 15),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+          ),
         ),
         iconTheme: const IconThemeData(color: _gold),
+        actions: [
+          IconButton(
+            tooltip: 'الانتقال إلى صفحة',
+            onPressed: _showGoToPageDialog,
+            icon: const Icon(Icons.find_in_page_rounded),
+          ),
+        ],
       ),
-      body: PDFView(
-        filePath: filePath,
-        enableSwipe: true,
-        swipeHorizontal: false,
-        autoSpacing: true,
-        pageFling: true,
-        backgroundColor: _bg,
+      body: Stack(
+        children: [
+          PDFView(
+            filePath: widget.filePath,
+            enableSwipe: true,
+            swipeHorizontal: false,
+            autoSpacing: true,
+            pageFling: true,
+            showScrollIndicators: true,
+            backgroundColor: _bg,
+            onViewCreated: (controller) {
+              _controller = controller;
+            },
+            onRender: (pages) {
+              if (!mounted) return;
+              setState(() => _pages = pages);
+            },
+            onPageChanged: (page, total) {
+              if (!mounted) return;
+              setState(() {
+                _page = page ?? 0;
+                _pages = total ?? _pages;
+              });
+            },
+            onError: (error) {
+              if (!mounted) return;
+              setState(() => _error = error.toString());
+            },
+            onPageError: (page, error) {
+              if (!mounted) return;
+              setState(() {
+                _error =
+                    'خطأ في صفحة ' +
+                    (page + 1).toString() +
+                    ': ' +
+                    error.toString();
+              });
+            },
+          ),
+          PositionedDirectional(
+            end: 2,
+            top: 20,
+            bottom: 60,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final height = constraints.maxHeight;
+                final trackTop = 42.0;
+                final trackBottom = 42.0;
+                final trackHeight =
+                    (height - trackTop - trackBottom).clamp(80.0, double.infinity);
+                final thumbTop = trackTop + (_pageFraction * trackHeight);
+
+                return GestureDetector(
+                  onVerticalDragStart: (_) {
+                    setState(() => _scrubbing = true);
+                  },
+                  onVerticalDragUpdate: (details) {
+                    final local = Offset(
+                      0,
+                      (details.localPosition.dy - trackTop)
+                          .clamp(0.0, trackHeight),
+                    );
+                    _scrubTo(local, trackHeight);
+                  },
+                  onVerticalDragEnd: (_) {
+                    setState(() => _scrubbing = false);
+                  },
+                  onTapUp: (details) {
+                    final local = Offset(
+                      0,
+                      (details.localPosition.dy - trackTop)
+                          .clamp(0.0, trackHeight),
+                    );
+                    _scrubTo(local, trackHeight);
+                  },
+                  child: SizedBox(
+                    width: 58,
+                    height: height,
+                    child: Stack(
+                      children: [
+                        Positioned(
+                          top: trackTop,
+                          bottom: trackBottom,
+                          left: 28,
+                          child: Container(
+                            width: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.white12,
+                              borderRadius: BorderRadius.circular(99),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 0,
+                          left: 15,
+                          child: IconButton(
+                            tooltip: 'أول صفحة',
+                            onPressed: () => _setPage(0),
+                            icon: const Icon(
+                              Icons.keyboard_arrow_up_rounded,
+                              color: _goldLight,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: thumbTop,
+                          left: 19,
+                          child: Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _gold,
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black54,
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (_scrubbing)
+                          Positioned(
+                            top: (thumbTop - 14).clamp(0.0, height - 34),
+                            left: 0,
+                            child: Container(
+                              width: 52,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xEE1B1713),
+                                borderRadius: BorderRadius.circular(9),
+                                border: Border.all(
+                                  color: _gold.withValues(alpha: 0.7),
+                                ),
+                              ),
+                              child: Text(
+                                (_page + 1).toString(),
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: _goldLight,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          ),
+                        Positioned(
+                          bottom: 0,
+                          left: 15,
+                          child: IconButton(
+                            tooltip: 'آخر صفحة',
+                            onPressed: () {
+                              final pages = _pages;
+                              if (pages != null) {
+                                _setPage(pages - 1);
+                              }
+                            },
+                            icon: const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              color: _goldLight,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          Positioned(
+            left: 18,
+            right: 18,
+            bottom: 10,
+            child: IgnorePointer(
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xDD1A1A1A),
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(
+                      color: _gold.withValues(alpha: 0.55),
+                    ),
+                  ),
+                  child: Text(
+                    _pages == null
+                        ? 'جاري تحميل الصفحات...'
+                        : 'صفحة ' +
+                            (_page + 1).toString() +
+                            ' من ' +
+                            _pages.toString(),
+                    style: const TextStyle(
+                      color: _goldLight,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (_error != null)
+            Align(
+              alignment: Alignment.topCenter,
+              child: Container(
+                margin: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xEE2A1515),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0x88D58D8D),
+                  ),
+                ),
+                child: Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
