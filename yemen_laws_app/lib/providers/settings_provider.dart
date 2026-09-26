@@ -43,7 +43,7 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> resetFontScale() => _setFontScale(1.0);
 
   Future<void> _setFontScale(double value) async {
-    _fontScale = value.clamp(minFontScale, maxFontScale);
+    _fontScale = value.clamp(minFontScale, maxFontScale).toDouble();
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble(_fontScaleKey, _fontScale);
