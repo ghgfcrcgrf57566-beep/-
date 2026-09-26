@@ -682,7 +682,8 @@ class _SupremeCourtPdfViewerState extends State<SupremeCourtPdfViewer> {
     final controller = _controller;
     final pages = _pages;
     if (controller == null || pages == null || pages < 1) return;
-    await controller.setPage(page.clamp(0, pages - 1));
+    final target = page.clamp(0, pages - 1).toInt();
+    await controller.setPage(target);
   }
 
   Future<void> _showGoToPageDialog() async {
