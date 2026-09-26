@@ -64,15 +64,56 @@ class RootShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final sections = _sections();
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop || !context.mounted) return;
+        final shouldExit = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            backgroundColor: const Color(0xFF1A1410),
+            title: const Text(
+              'تأكيد الخروج',
+              style: TextStyle(color: Color(0xFFE2BA70)),
+              textAlign: TextAlign.right,
+            ),
+            content: const Text(
+              'هل تريد الخروج من التطبيق؟',
+              style: TextStyle(color: Colors.white70),
+              textAlign: TextAlign.right,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text(
+                  'إلغاء',
+                  style: TextStyle(color: Colors.white60),
+                ),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Color(0xFFD4AF37),
+                  foregroundColor: Colors.black,
+                ),
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('خروج'),
+              ),
+            ],
+          ),
+        );
+        if (shouldExit == true && context.mounted) {
+          SystemNavigator.pop();
+        }
+      },
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
         systemNavigationBarColor: Color(0xFF120B08),
         systemNavigationBarIconBrightness: Brightness.light,
       ),
-      child: Scaffold(
+        child: Scaffold(
         backgroundColor: const Color(0xFF120B08),
         body: Stack(
           fit: StackFit.expand,
@@ -142,6 +183,7 @@ class RootShell extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );
