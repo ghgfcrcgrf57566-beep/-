@@ -565,13 +565,24 @@ class _BookCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      partLabel,
-                      style: const TextStyle(
-                        color: _gold,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12.5,
-                      ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.menu_book_rounded,
+                          color: _gold,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          partLabel,
+                          style: const TextStyle(
+                            color: _gold,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 5),
                     Text(
@@ -587,15 +598,6 @@ class _BookCard extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                downloaded
-                    ? Icons.check_circle_rounded
-                    : Icons.download_for_offline_outlined,
-                color:
-                    downloaded ? _goldLight : Colors.white38,
-                size: 28,
               ),
             ],
           ),
