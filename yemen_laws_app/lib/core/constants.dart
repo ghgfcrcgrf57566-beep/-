@@ -1,21 +1,19 @@
-/// نصوص الهوية الثابتة للتطبيق. مُجمَّعة هنا حتى تبقى مطابقة تمامًا لما
-/// طُلب في كل مكان يظهر فيه (شاشة الترحيب، الرئيسية، قسم التواصل)، دون
-/// إعادة صياغتها بأي شكل.
+/// نصوص الهوية الثابتة لتطبيق «موسوعة القانون اليمني».
 class AppConstants {
-  static const String appNameAr = 'قوانين اليمن';
-  static const String appNameEn = 'Yemen Law';
+  static const String appNameAr = 'موسوعة القانون اليمني';
+  static const String appNameEn = 'Yemen Law Encyclopedia';
 
-  static const String contactName = 'أسامة خالد المقبلي';
+  static const String contactName = 'أسامة المقبلي';
   static const String contactShortName = 'أسامة المقبلي';
   static const String contactTitleShort = 'للاستشارات القانونية';
-  static const String contactTitleFull = 'محاماة – استشارات قانونية – تحرير عقود';
-  static const String contactPhone = '777001515';
+  static const String contactTitleFull = 'للاستشارات القانونية';
+  static const String contactPhone = '77701515';
 
   static const String copyrightText = 'حقوق الطبع محفوظة';
 
   static const String dedicationText =
-      'هذا البرنامج هو عبارة عن مجهود شخصي، وهو إهداء إلى روح من هداني إلى '
-      'طلب العلم، والدي، رحمة الله عليه.';
+      'هذا البرنامج هو عبارة عن مجهود شخصي، وهو إهداء إلى روح الوالد، '
+      'رحمه الله، تقديرًا لما قدمه من علم وتوجيه.';
 
   static const String feedbackIntro =
       'نسعى إلى تطوير التطبيق باستمرار، وتسهم ملاحظاتكم واقتراحاتكم في '
