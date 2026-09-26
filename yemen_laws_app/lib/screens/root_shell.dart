@@ -13,11 +13,19 @@ import 'favorites/favorites_screen.dart';
 import 'feedback/feedback_screen.dart';
 import 'laws/laws_home_screen.dart';
 import 'supreme_court_screen.dart';
+import 'legal_ai/legal_ai_screen.dart';
 
 class RootShell extends StatelessWidget {
   const RootShell({super.key});
 
   List<_SectionData> _sections() => [
+        _SectionData(
+          icon: Icons.auto_awesome_rounded,
+          title: 'اسأل موسوعة القوانين اليمنية',
+          subtitle: 'مساعد ذكي يبحث أولاً في نصوص القوانين',
+          builder: (_) => const LegalAiScreen(),
+          fullWidth: true,
+        ),
         _SectionData(
           icon: Icons.menu_book_rounded,
           title: 'المراجع القانونية',
