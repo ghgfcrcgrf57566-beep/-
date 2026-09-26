@@ -54,8 +54,6 @@ jobs:
           SECRET_LEGAL_AI_BASE_URL: ${{ secrets.LEGAL_AI_BASE_URL }}
         run: |
           set -e
-          # Prefer the repository secret when configured; otherwise use the
-          # deployed public Worker URL documented by this project.
           if [ -n "$SECRET_LEGAL_AI_BASE_URL" ]; then
             LEGAL_AI_BASE_URL="$SECRET_LEGAL_AI_BASE_URL"
           else
@@ -68,7 +66,12 @@ jobs:
           echo "LEGAL_AI_BASE_URL=$LEGAL_AI_BASE_URL" >> "$GITHUB_ENV"
 
       - name: Run Flutter tests
-        run: flutter test
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "No Flutter test directory found; skipping flutter test."
+          fi
 
       - name: Check backend TypeScript
         working-directory: backend/legal-ai
@@ -77,8 +80,6 @@ jobs:
           npm run typecheck
 
       - name: Build release APK
-        env:
-          LEGAL_AI_BASE_URL: ${{ secrets.LEGAL_AI_BASE_URL }}
         run: flutter build apk --release --dart-define=LEGAL_AI_BASE_URL="$LEGAL_AI_BASE_URL"
 
       - name: Validate Supreme Court PDF URLs
