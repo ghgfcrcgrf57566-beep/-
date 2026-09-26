@@ -7,7 +7,7 @@ class AppConstants {
   static const String contactShortName = 'أسامة المقبلي';
   static const String contactTitleShort = 'للاستشارات القانونية';
   static const String contactTitleFull = 'للاستشارات القانونية';
-  static const String contactPhone = '77701515';
+  static const String contactPhone = '777001515';
 
   static const String copyrightText = 'حقوق الطبع محفوظة';
 
