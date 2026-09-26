@@ -23,6 +23,29 @@ Use yemen_laws_app/tools/export_rag_data.py to export these tables while preserv
 
 Do not replace the schema with a simplified experimental schema.
 
+## Local-first search priority
+
+Every assistant question now follows a strict sequential fallback:
+
+1. Search the mobile SQLite database first using the same canonical legal corpus.
+2. If one or more local legal matches are found, return those articles immediately and do not call the Backend or Gemini.
+3. Only when the local search returns no matches does Flutter call POST /api/chat with fallback_from_local=true.
+4. The Backend then performs its server-side lexical/semantic retrieval and may call Gemini only when it has sufficient retrieved legal evidence.
+
+If the local database search itself fails, the app reports the local search failure instead of silently sending the question to AI.
+
+## Search history
+
+The mobile database table search_history keeps each assistant lookup with:
+
+- id
+- query
+- response
+- source: local_db or gemini_ai
+- created_at
+
+The app migrates the older search_history schema in place so existing installations are not broken. The assistant screen exposes the history from the top bar.
+
 ## Backend API
 
 Primary endpoint:
