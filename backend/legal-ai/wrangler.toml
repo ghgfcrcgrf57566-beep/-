@@ -1,14 +1,14 @@
-name = "yemen-laws-legal-ai"
+name = "odd-mouse-c1e0"
 main = "src/index.ts"
-compatibility_date = "2026-09-01"
+compatibility_date = "2026-09-23"
 
 [ai]
 binding = "AI"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "yemen-laws-rag"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_name = "yemen_laws_db"
+database_id = "2bbc13e8-3cd5-470d-8753-94ef34cef256"
 
 [[vectorize]]
 binding = "VECTOR_INDEX"
@@ -18,6 +18,6 @@ index_name = "yemen-laws-articles"
 ALLOWED_APP_VERSION = "1.0.0"
 MAX_QUESTION_CHARS = "1200"
 MAX_RESULTS = "8"
+MIN_RELEVANCE_SCORE = "0.15"
 AI_MODEL = "@cf/zai-org/glm-4.7-flash"
 EMBEDDING_MODEL = "@cf/baai/bge-m3"
-\n# Set with: npx wrangler secret put REINDEX_TOKEN\n
