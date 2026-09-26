@@ -26,12 +26,13 @@ class LegalAiResult {
 class LegalAiService {
   LegalAiService._();
   static final instance = LegalAiService._();
-  static const baseUrl = String.fromEnvironment('LEGAL_AI_BASE_URL', defaultValue: 'https://yemen-laws-ai.example.workers.dev');
+  static const baseUrl = String.fromEnvironment('LEGAL_AI_BASE_URL', defaultValue: '');
 
   Future<LegalAiResult> ask({required String question, String? conversationId, List<Map<String,String>> history = const []}) async {
     final q = question.trim();
     if (q.isEmpty) throw const LegalAiException('يرجى كتابة السؤال أولاً.');
     if (q.length > 1200) throw const LegalAiException('السؤال طويل جداً. اختصره إلى 1200 حرف كحد أقصى.');
+    if (baseUrl.isEmpty) throw const LegalAiException('لم يتم إعداد عنوان خادم المساعد بعد. ابنِ التطبيق باستخدام LEGAL_AI_BASE_URL.');
     try {
       final r = await http.post(Uri.parse('$baseUrl/api/legal/ask'),
         headers: {'Content-Type':'application/json','Accept':'application/json','X-App-Version':'1.0.0'},
