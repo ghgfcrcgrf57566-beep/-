@@ -818,7 +818,7 @@ class _SupremeCourtPdfViewerState extends State<SupremeCourtPdfViewer> {
                 _error =
                     'خطأ في صفحة ' +
                     ((page ?? 0) + 1).toString() +
-                    ': '
+                    ': ' +
                     error.toString();
               });
             },
