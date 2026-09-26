@@ -79,11 +79,32 @@ jobs:
           npm install
           npm run typecheck
 
+      - name: Deploy legal AI Worker
+        working-directory: backend/legal-ai
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -e
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "Missing CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID GitHub Actions secrets."
+            echo "Configure these secrets before deploying the legal AI Worker."
+            exit 1
+          fi
+          npx wrangler deploy
+
+      - name: Verify legal AI Worker health
+        working-directory: yemen_laws_app
+        run: |
+          set -e
+          curl --fail --silent --show-error --location --max-time 30 "$LEGAL_AI_BASE_URL/health"
+          echo
+
       - name: Build release APK
         run: flutter build apk --release --dart-define=LEGAL_AI_BASE_URL="$LEGAL_AI_BASE_URL"
 
       - name: Validate Supreme Court PDF URLs
-        working-directory: .
+        working-directory: ${{ github.workspace }}
         run: |
           set -e
           jq -r '.[].download_url' sc_books.json > /tmp/sc_book_urls.txt
