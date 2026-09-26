@@ -22,9 +22,13 @@ class _LegalAiScreenState extends State<LegalAiScreen> {
     if(loading) return;
     final q=c.text.trim();
     if(q.isEmpty)return;
-    final history=messages
+    final previousMessages = messages
         .where((m)=>m.role=='user'||m.role=='assistant')
-        .take(12)
+        .toList();
+    final recentMessages = previousMessages.length > 12
+        ? previousMessages.skip(previousMessages.length - 12)
+        : previousMessages;
+    final history=recentMessages
         .map((m)=>{'role':m.role,'content':m.text})
         .toList();
 
