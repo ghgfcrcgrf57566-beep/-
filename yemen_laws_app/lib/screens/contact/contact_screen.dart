@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants.dart';
 import '../../core/theme.dart';
 
@@ -57,31 +59,83 @@ class ContactScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 18),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 13,
+                    padding: const EdgeInsetsDirectional.only(
+                      start: 8,
+                      end: 8,
+                      top: 6,
+                      bottom: 6,
                     ),
                     decoration: BoxDecoration(
                       color: const Color(0x19D4AF37),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: const Color(0x55D4AF37)),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.phone_rounded,
-                          color: Color(0xFFD4AF37),
-                          size: 21,
+                        IconButton(
+                          tooltip: 'نسخ الرقم',
+                          onPressed: () async {
+                            await Clipboard.setData(
+                              const ClipboardData(
+                                text: AppConstants.contactPhone,
+                              ),
+                            );
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('تم نسخ رقم التواصل'),
+                              ),
+                            );
+                          },
+                          icon: const Icon(
+                            Icons.copy_rounded,
+                            color: Color(0xFFD4AF37),
+                            size: 20,
+                          ),
                         ),
-                        SizedBox(width: 10),
-                        Text(
-                          AppConstants.contactPhone,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1,
+                        const SizedBox(width: 2),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () async {
+                            final uri = Uri(
+                              scheme: 'tel',
+                              path: AppConstants.contactPhone,
+                            );
+                            final launched = await launchUrl(uri);
+                            if (!launched && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('تعذر فتح تطبيق الاتصال'),
+                                ),
+                              );
+                            }
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.phone_rounded,
+                                  color: Color(0xFFD4AF37),
+                                  size: 21,
+                                ),
+                                SizedBox(width: 10),
+                                Text(
+                                  AppConstants.contactPhone,
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
