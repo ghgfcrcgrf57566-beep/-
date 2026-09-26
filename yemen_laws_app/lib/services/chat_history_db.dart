@@ -129,7 +129,7 @@ class ChatHistoryDb {
   Future<List<ChatHistoryEntry>> getHistory({int limit = 50}) async {
     await ensureSchema();
     final db = await _db;
-    final safeLimit = limit.clamp(1, 100);
+    final safeLimit = limit.clamp(1, 100).toInt();
 
     final rows = await db.query(
       'search_history',
