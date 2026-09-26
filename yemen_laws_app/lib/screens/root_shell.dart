@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../core/constants.dart';
+import '../core/theme.dart';
+import '../providers/settings_provider.dart';
 import 'coming_soon_screen.dart';
 import 'contact/contact_screen.dart';
 import 'favorites/favorites_screen.dart';
@@ -119,8 +121,20 @@ class RootShell extends StatelessWidget {
         body: Stack(
           fit: StackFit.expand,
           children: [
-            const _LibraryBackground(),
-            Container(color: const Color(0x8F120A06)),
+            ColorFiltered(
+              colorFilter: context.isDark
+                  ? const ColorFilter.mode(Colors.transparent, BlendMode.dst)
+                  : ColorFilter.mode(
+                      Colors.white.withOpacity(0.72),
+                      BlendMode.screen,
+                    ),
+              child: const _LibraryBackground(),
+            ),
+            Container(
+              color: context.isDark
+                  ? const Color(0x8F120A06)
+                  : const Color(0x331A1208),
+            ),
             SafeArea(
               child: LayoutBuilder(
                 builder: (context, constraints) {
@@ -194,62 +208,176 @@ class RootShell extends StatelessWidget {
 class _HomeTitle extends StatelessWidget {
   const _HomeTitle();
 
+  Future<void> _chooseTheme(BuildContext context) async {
+    final settings = context.read<SettingsProvider>();
+    final selected = await showModalBottomSheet<ThemeMode>(
+      context: context,
+      backgroundColor: context.isDark
+          ? AppColors.darkSurface
+          : AppColors.lightSurface,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'مظهر التطبيق',
+                    style: TextStyle(
+                      color: sheetContext.isDark
+                          ? AppColors.softGold
+                          : AppColors.bronzeOnLight,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+              _ThemeChoice(
+                icon: Icons.dark_mode_rounded,
+                title: 'الوضع الليلي',
+                subtitle: 'خلفية داكنة مريحة للقراءة',
+                mode: ThemeMode.dark,
+                selected: settings.themeMode == ThemeMode.dark,
+              ),
+              _ThemeChoice(
+                icon: Icons.light_mode_rounded,
+                title: 'الوضع النهاري',
+                subtitle: 'خلفية فاتحة دافئة',
+                mode: ThemeMode.light,
+                selected: settings.themeMode == ThemeMode.light,
+              ),
+              _ThemeChoice(
+                icon: Icons.brightness_auto_rounded,
+                title: 'تلقائي',
+                subtitle: 'يتبع إعداد الوضع في الهاتف',
+                mode: ThemeMode.system,
+                selected: settings.themeMode == ThemeMode.system,
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+    if (selected != null) {
+      await settings.setThemeMode(selected);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<SettingsProvider>();
-    final isDark = settings.themeMode == ThemeMode.dark;
+    final isDark = context.isDark;
+    final modeIcon = settings.themeMode == ThemeMode.system
+        ? Icons.brightness_auto_rounded
+        : isDark
+            ? Icons.nightlight_round
+            : Icons.wb_sunny_rounded;
 
     return Row(
       textDirection: TextDirection.rtl,
       children: [
         IconButton(
-          tooltip: isDark ? 'الوضع النهاري' : 'الوضع الليلي',
-          onPressed: () {
-            settings.setThemeMode(
-              isDark ? ThemeMode.light : ThemeMode.dark,
-            );
-          },
+          tooltip: 'اختيار الوضع: ليلي / نهاري / تلقائي',
+          onPressed: () => _chooseTheme(context),
           icon: Icon(
-            isDark ? Icons.nightlight_round : Icons.wb_sunny_rounded,
+            modeIcon,
             size: 26,
-            color: const Color(0xFFE2BA70),
+            color: isDark ? AppColors.softGold : AppColors.bronzeOnLight,
           ),
           style: IconButton.styleFrom(
-            backgroundColor: const Color(0x441A100B),
-            side: const BorderSide(
-              color: Color(0x88E1C28C),
+            backgroundColor: isDark
+                ? const Color(0x441A100B)
+                : const Color(0xCCFFFFFF),
+            side: BorderSide(
+              color: isDark
+                  ? const Color(0x88E1C28C)
+                  : AppColors.lightDivider,
               width: 1,
             ),
             shape: const CircleBorder(),
             padding: const EdgeInsets.all(10),
           ),
         ),
-        const Expanded(
+        Expanded(
           child: Text(
             AppConstants.appNameAr,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Color(0xFFE2BA70),
+              color: isDark
+                  ? const Color(0xFFE2BA70)
+                  : AppColors.bronzeOnLight,
               fontSize: 27,
               fontWeight: FontWeight.w800,
               height: 1.1,
               letterSpacing: 0.2,
-              shadows: [
-                Shadow(
-                  color: Colors.black87,
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-                Shadow(
-                  color: Color(0x663A210C),
-                  blurRadius: 18,
-                ),
-              ],
+              shadows: isDark
+                  ? const [
+                      Shadow(
+                        color: Colors.black87,
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                      Shadow(
+                        color: Color(0x663A210C),
+                        blurRadius: 18,
+                      ),
+                    ]
+                  : const [],
             ),
           ),
         ),
         const SizedBox(width: 48),
       ],
+    );
+  }
+}
+
+class _ThemeChoice extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final ThemeMode mode;
+  final bool selected;
+
+  const _ThemeChoice({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.mode,
+    required this.selected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = context.isDark
+        ? AppColors.softGold
+        : AppColors.bronzeOnLight;
+
+    return ListTile(
+      onTap: () => Navigator.of(context).pop(mode),
+      leading: Icon(icon, color: accent),
+      title: Text(
+        title,
+        textAlign: TextAlign.right,
+        style: TextStyle(
+          color: context.textPrimary,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        textAlign: TextAlign.right,
+        style: TextStyle(color: context.textSecondary),
+      ),
+      trailing: selected
+          ? Icon(Icons.check_circle_rounded, color: accent)
+          : const SizedBox(width: 24),
     );
   }
 }
@@ -277,10 +405,10 @@ class _GlassSectionCard extends StatelessWidget {
             highlightColor: const Color(0x18E3BD78),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: const Color(0xA91A100B),
+                color: context.isDark ? const Color(0xA91A100B) : const Color(0xE8FFFFFF),
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(
-                  color: const Color(0xD8E1C28C),
+                  color: context.isDark ? const Color(0xD8E1C28C) : AppColors.lightDivider,
                   width: 1.5,
                 ),
                 boxShadow: const [
@@ -442,7 +570,7 @@ class _HomeFooter extends StatelessWidget {
         fontWeight: FontWeight.w700,
         height: 1.4,
         shadows: [
-          Shadow(color: Colors.black, blurRadius: 8, offset: Offset(0, 2)),
+          Shadow(color: context.isDark ? Colors.black : Colors.white, blurRadius: 8, offset: Offset(0, 2)),
         ],
       ),
     );
