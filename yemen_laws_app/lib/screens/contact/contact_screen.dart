@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../core/theme.dart';
 import '../../core/constants.dart';
+import '../../core/theme.dart';
 
 class ContactScreen extends StatelessWidget {
   const ContactScreen({super.key});
@@ -8,63 +8,141 @@ class ContactScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('التواصل والاستشارات القانونية')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: context.surfaceAlt,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: context.divider),
-            ),
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 34,
-                  backgroundColor: context.accent.withOpacity(0.15),
-                  child: Icon(Icons.person_outline, size: 36, color: context.accent),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  AppConstants.contactName,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: context.textPrimary),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  AppConstants.contactTitleFull,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13.5, color: context.textSecondary),
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: context.accent.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(12),
+      appBar: AppBar(title: const Text('التواصل والاستشارات')),
+      backgroundColor: const Color(0xFF121212),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A1A1A),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: const Color(0x66D4AF37)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 82,
+                    height: 82,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [Color(0xFFF0D78A), Color(0xFF8A671C)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.support_agent_rounded,
+                      color: Colors.black87,
+                      size: 48,
+                    ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.call_outlined, color: context.accent, size: 20),
-                      const SizedBox(width: 10),
-                      Text(
-                        AppConstants.contactPhone,
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                          color: context.textPrimary,
-                          letterSpacing: 1,
+                  const SizedBox(height: 18),
+                  const Text(
+                    AppConstants.contactName,
+                    style: TextStyle(
+                      color: Color(0xFFF0D78A),
+                      fontSize: 21,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  const Text(
+                    AppConstants.contactTitleFull,
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  const SizedBox(height: 18),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 13,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0x19D4AF37),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0x55D4AF37)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.phone_rounded,
+                          color: Color(0xFFD4AF37),
+                          size: 21,
                         ),
+                        SizedBox(width: 10),
+                        Text(
+                          AppConstants.contactPhone,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF181512),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0x442E261A)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        'عن التطبيق',
+                        style: TextStyle(
+                          color: context.accent,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 17,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: context.accent,
                       ),
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  Text(
+                    AppConstants.dedicationText,
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      color: context.textSecondary,
+                      height: 1.8,
+                      fontSize: 13.5,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '© ${AppConstants.copyrightText}',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                      color: context.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
