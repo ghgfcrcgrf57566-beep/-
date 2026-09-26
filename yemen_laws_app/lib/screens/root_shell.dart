@@ -109,15 +109,20 @@ class RootShell extends StatelessWidget {
         }
       },
       child: AnnotatedRegion<SystemUiOverlayStyle>(
-        value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-        systemNavigationBarColor: Color(0xFF120B08),
-        systemNavigationBarIconBrightness: Brightness.light,
-      ),
+        value: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: context.isDark ? Brightness.light : Brightness.dark,
+          statusBarBrightness: context.isDark ? Brightness.dark : Brightness.light,
+          systemNavigationBarColor: context.isDark
+              ? AppColors.darkBackground
+              : AppColors.lightBackground,
+          systemNavigationBarIconBrightness:
+              context.isDark ? Brightness.light : Brightness.dark,
+        ),
         child: Scaffold(
-        backgroundColor: const Color(0xFF120B08),
+        backgroundColor: context.isDark
+            ? AppColors.darkBackground
+            : AppColors.lightBackground,
         body: Stack(
           fit: StackFit.expand,
           children: [
