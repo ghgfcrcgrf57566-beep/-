@@ -88,7 +88,15 @@ class _LawDetailScreenState extends State<LawDetailScreen> {
               : ListView(
                   padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
                   children: [
-                    if (isRoot) _LawHeader(law: widget.law),
+                    if (isRoot)
+                      _LawHeader(
+                        law: widget.law,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => SequentialLawScreen(law: widget.law),
+                          ),
+                        ),
+                      ),
                     ..._subAbwab.map((b) => Padding(
                           padding: const EdgeInsets.only(bottom: 10),
                           child: SectionTile(
@@ -141,30 +149,98 @@ class _LawDetailScreenState extends State<LawDetailScreen> {
 
 class _LawHeader extends StatelessWidget {
   final Law law;
-  const _LawHeader({required this.law});
+  final VoidCallback onTap;
+
+  const _LawHeader({
+    required this.law,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.surfaceAlt,
+    final category = law.category?.trim();
+    final meta = law.articlesCount.toString() +
+        ' مادة قانونية' +
+        ((category == null || category.isEmpty) ? '' : ' • ' + category);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.divider),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.balance, color: context.accent, size: 28),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              '${law.articlesCount} مادة قانونية${law.category != null ? ' • ${law.category}' : ''}',
-              textAlign: TextAlign.right,
-              style: TextStyle(color: context.textPrimary, fontWeight: FontWeight.w600),
-            ),
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: context.surfaceAlt,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: context.divider),
           ),
-        ],
+          child: Row(
+            children: [
+              Icon(
+                Icons.menu_book_rounded,
+                color: context.accent,
+                size: 29,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      law.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        color: context.textPrimary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15.5,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      meta,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        color: context.textSecondary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12.5,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Icon(
+                          Icons.auto_stories_rounded,
+                          color: context.accent,
+                          size: 15,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          'اضغط للقراءة الكاملة',
+                          style: TextStyle(
+                            color: context.accent,
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Icon(
+                Icons.chevron_left_rounded,
+                color: context.textSecondary,
+                size: 24,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
