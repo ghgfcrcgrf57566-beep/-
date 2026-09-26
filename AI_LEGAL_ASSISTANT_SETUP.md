@@ -47,6 +47,10 @@ Import laws, abwab, fusul and mawad into D1 while preserving IDs and original te
 
 Generate one embedding for each article using @cf/baai/bge-m3 and upsert each vector into Vectorize using the article ID as the vector ID. The Worker maps vector matches back to D1 records.
 
+## Semantic index initialization
+
+The protected POST /admin/reindex endpoint embeds batches of existing articles and upserts them into Vectorize. It accepts after and limit query parameters and returns next_after. Keep the reindex token only in deployment secrets. Do not put it in Flutter or Git.
+
 ## API
 
 POST /api/legal/ask
