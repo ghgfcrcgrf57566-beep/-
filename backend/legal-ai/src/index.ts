@@ -5,19 +5,21 @@ export interface Env {
   ALLOWED_APP_VERSION: string;
   MAX_QUESTION_CHARS: string;
   MAX_RESULTS: string;
+  MIN_RELEVANCE_SCORE: string;
   AI_MODEL: string;
   EMBEDDING_MODEL: string;
   REINDEX_TOKEN: string;
 }
 type Source={article_id:number;law_name:string;article_number:string;article_text:string;chapter?:string|null;score?:number};
+type HistoryMessage={role:"user"|"assistant";content:string};
 
-const HEADERS={"content-type":"application/json; charset=utf-8","cache-control":"no-store","access-control-allow-origin":"*","access-control-allow-methods":"POST, OPTIONS","access-control-allow-headers":"content-type, x-app-version"};
-const SYSTEM="أنت مساعد قانوني لموسوعة القوانين اليمنية. أجب بالعربية. اعتمد أولاً على المواد المسترجعة. لا تخترع قانوناً أو رقم مادة أو نصاً قانونياً. إذا كانت المواد غير كافية فقل ذلك بوضوح. فرّق بين النص القانوني والشرح. لا تقدّم الإجابة باعتبارها استشارة قانونية ملزمة.";
+const HEADERS={"content-type":"application/json; charset=utf-8","cache-control":"no-store","access-control-allow-origin":"*","access-control-allow-methods":"GET, POST, OPTIONS","access-control-allow-headers":"content-type, x-app-version"};
+const SYSTEM="أنت مساعد قانوني لموسوعة القوانين اليمنية. أجب بالعربية. الحقائق القانونية يجب أن تستند حصراً إلى المواد القانونية المسترجعة من قاعدة الموسوعة. لا تستخدم سجل المحادثة كمصدر قانوني؛ استخدمه فقط لفهم سياق السؤال والمتابعة. لا تخترع قانوناً أو رقم مادة أو نصاً قانونياً. إذا كانت المواد غير كافية فقل ذلك بوضوح. فرّق بين النص القانوني والشرح. لا تقدّم الإجابة باعتبارها استشارة قانونية ملزمة.";
 
 export default {async fetch(request:Request,env:Env):Promise<Response>{
   const url=new URL(request.url);
   if(request.method==="OPTIONS") return new Response(null,{status:204,headers:HEADERS});
-  if(url.pathname==="/health") return json({ok:true,service:"yemen-laws-legal-ai"});
+  if(url.pathname==="/health") return json({ok:true});
   if(url.pathname==="/admin/reindex"){
     if(request.method!=="POST") return json({error:"Method not allowed"},405);
     if(!env.REINDEX_TOKEN || request.headers.get("authorization")!=="Bearer "+env.REINDEX_TOKEN) return json({error:"Unauthorized"},401);
@@ -42,19 +44,37 @@ export default {async fetch(request:Request,env:Env):Promise<Response>{
   if(!(await rateLimit(request,env))) return json({error:"تم تجاوز حد الاستخدام مؤقتاً. حاول لاحقاً."},429);
 
   try{
-    const body=await request.json() as {question?:unknown;conversation_id?:unknown};
+    const body=await request.json() as {question?:unknown;conversation_id?:unknown;history?:unknown};
     const question=typeof body.question==="string"?body.question.trim():"";
     const max=Number(env.MAX_QUESTION_CHARS||1200);
     if(!question) return json({error:"السؤال فارغ."},400);
     if(question.length>max) return json({error:"السؤال أطول من الحد المسموح."},400);
 
+    const history=normalizeHistory(body.history);
     const sources=await retrieve(question,env);
-    if(!sources.length) return json({answer:"لم أعثر على مواد قانونية كافية في قاعدة موسوعة القوانين اليمنية للإجابة عن هذا السؤال.",sources:[]});
-    const answer=await generate(question,sources,env);
-    return json({answer,sources,conversation_id:typeof body.conversation_id==="string"?body.conversation_id:crypto.randomUUID()});
+    if(!hasEnoughEvidence(sources,env)){
+      return json({
+        answer:"لم أجد معلومات قانونية كافية في قاعدة موسوعة القوانين اليمنية للإجابة عن هذا السؤال.",
+        sources:[],
+        conversation_id:typeof body.conversation_id==="string"&&body.conversation_id.trim()?body.conversation_id:crypto.randomUUID()
+      });
+    }
+    const answer=await generate(question,history,sources,env);
+    return json({answer,sources,conversation_id:typeof body.conversation_id==="string"&&body.conversation_id.trim()?body.conversation_id:crypto.randomUUID()});
   }catch(e){console.error(e);return json({error:"حدث خطأ داخلي أثناء معالجة السؤال."},500);}
 }};
 
+function normalizeHistory(value:unknown):HistoryMessage[]{
+  if(!Array.isArray(value)) return [];
+  return value.filter((m:any)=>m&&((m.role==="user")||(m.role==="assistant"))&&typeof m.content==="string")
+    .map((m:any)=>({role:m.role,content:m.content.trim().slice(0,2000)}))
+    .filter(m=>m.content).slice(-12);
+}
+function hasEnoughEvidence(sources:Source[],env:Env){
+  if(!sources.length) return false;
+  const threshold=Number(env.MIN_RELEVANCE_SCORE||0.15);
+  return Number(sources[0].score||0)>=threshold;
+}
 async function retrieve(q:string,env:Env){
   const limit=Math.min(Math.max(Number(env.MAX_RESULTS||8),3),12);
   const [semantic,lexical]=await Promise.all([semanticSearch(q,env,limit),lexicalSearch(q,env,limit)]);
@@ -84,9 +104,10 @@ async function lexicalSearch(q:string,env:Env,limit:number):Promise<Source[]>{
   const rows=await env.DB.prepare("SELECT m.id article_id,l.name law_name,m.number article_number,m.body article_text,COALESCE(f.label,b.label) chapter FROM mawad m JOIN laws l ON l.id=m.law_id LEFT JOIN fusul f ON f.id=m.fasl_id LEFT JOIN abwab b ON b.id=m.bab_id WHERE "+clauses+" LIMIT 80").bind(...args).all<Source>();
   return (rows.results||[]).map(r=>{const hay=normalize(r.law_name+" "+r.article_number+" "+r.article_text);const hits=terms.reduce((n,t)=>n+(hay.includes(t)?1:0),0);return {...r,score:hits/terms.length};}).sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,limit);
 }
-async function generate(q:string,sources:Source[],env:Env):Promise<string>{
+async function generate(q:string,history:HistoryMessage[],sources:Source[],env:Env):Promise<string>{
   const context=sources.map((s,i)=>"[مصدر "+(i+1)+"] القانون: "+s.law_name+" | المادة: "+s.article_number+"\nالنص القانوني:\n"+s.article_text).join("\n\n");
-  const prompt=SYSTEM+"\n\nالسؤال:\n"+q+"\n\nالمواد المسترجعة من قاعدة الموسوعة:\n"+context+"\n\nاكتب إجابة عربية واضحة. ابدأ بالجواب المباشر ثم اذكر المواد المستند إليها. إذا كانت غير كافية فلا تخمّن.";
+  const historyText=history.length?history.map(m=>m.role==="user"?"المستخدم: "+m.content:"المساعد: "+m.content).join("\n"):"لا يوجد سجل سابق.";
+  const prompt=SYSTEM+"\n\nسجل المحادثة لفهم السياق فقط (ليس مصدراً قانونياً):\n"+historyText+"\n\nالسؤال الحالي:\n"+q+"\n\nالمواد المسترجعة من قاعدة الموسوعة:\n"+context+"\n\nاكتب إجابة عربية واضحة. ابدأ بالجواب المباشر، ثم اذكر المواد المستند إليها. لا تستنتج نصاً قانونياً غير موجود في المصادر. إذا كانت المصادر لا تكفي للإجابة، صرّح بذلك.";
   const out=await env.AI.run(env.AI_MODEL,{messages:[{role:"system",content:SYSTEM},{role:"user",content:prompt}],max_tokens:900,temperature:0.1}) as any;
   return typeof out?.response==="string"?out.response.trim():typeof out?.result?.response==="string"?out.result.response.trim():typeof out?.choices?.[0]?.message?.content==="string"?out.choices[0].message.content.trim():"تعذر توليد الإجابة من المواد المسترجعة.";
 }
