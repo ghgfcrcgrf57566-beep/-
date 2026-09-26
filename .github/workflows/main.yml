@@ -49,8 +49,25 @@ jobs:
       - name: Analyze Dart code
         run: flutter analyze --no-fatal-infos
 
+      - name: Validate LEGAL_AI_BASE_URL
+        env:
+          LEGAL_AI_BASE_URL: ${{ secrets.LEGAL_AI_BASE_URL }}
+        run: |
+          set -e
+          if [ -z "$LEGAL_AI_BASE_URL" ]; then
+            echo "Missing required GitHub Actions secret: LEGAL_AI_BASE_URL"
+            echo "Set it to the deployed Cloudflare Worker URL."
+            exit 1
+          fi
+          case "$LEGAL_AI_BASE_URL" in
+            http://*|https://*) ;;
+            *) echo "LEGAL_AI_BASE_URL must start with http:// or https://"; exit 1 ;;
+          esac
+
       - name: Build release APK
-        run: flutter build apk --release
+        env:
+          LEGAL_AI_BASE_URL: ${{ secrets.LEGAL_AI_BASE_URL }}
+        run: flutter build apk --release --dart-define=LEGAL_AI_BASE_URL="$LEGAL_AI_BASE_URL"
 
       - name: Validate Supreme Court PDF URLs
         working-directory: .
