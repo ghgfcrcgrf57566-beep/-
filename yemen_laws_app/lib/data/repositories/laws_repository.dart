@@ -203,6 +203,127 @@ class LawsRepository {
   }
 
   // ---------------------------------------------------------------------
+  // البحث المخصص للمساعد القانوني: نفس قاعدة SQLite المحلية أولًا
+  // ---------------------------------------------------------------------
+
+  Future<List<Madda>> searchForLegalAssistant(
+    String query, {
+    int limit = 8,
+  }) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return [];
+
+    final numeric = int.tryParse(trimmed);
+    if (numeric != null) {
+      return getMaddaByNumber(trimmed);
+    }
+
+    final direct = await search(trimmed, limit: limit);
+    if (direct.isNotEmpty) return direct;
+
+    final terms = trimmed
+        .split(RegExp(r'\s+'))
+        .map(_normalizeAssistantTerm)
+        .where(
+          (term) =>
+              term.length >= 2 && !_assistantStopWords.contains(term),
+        )
+        .take(8)
+        .toList();
+
+    if (terms.isEmpty) return [];
+
+    final db = await _db;
+    final ftsQuery = terms
+        .map((term) => '"' + term.replaceAll('"', '') + '"*')
+        .join(' OR ');
+
+    try {
+      final rows = await db.rawQuery('''
+        SELECT m.*, l.name AS law_name, b.label AS bab_label, f.label AS fasl_label
+        FROM mawad_fts fts
+        JOIN mawad m ON m.id = fts.rowid
+        JOIN laws l ON l.id = m.law_id
+        LEFT JOIN abwab b ON b.id = m.bab_id
+        LEFT JOIN fusul f ON f.id = m.fasl_id
+        WHERE mawad_fts MATCH ?
+        ORDER BY rank
+        LIMIT ?
+      ''', [ftsQuery, limit]);
+
+      final result = rows.map(Madda.fromMap).toList();
+      if (result.isNotEmpty) return result;
+    } catch (_) {
+      // ننتقل إلى LIKE إذا تعذر استخدام FTS.
+    }
+
+    final clauses = terms
+        .map((_) => '(m.body LIKE ? OR m.number LIKE ? OR l.name LIKE ?)')
+        .join(' OR ');
+    final args = <String>[];
+    for (final term in terms) {
+      args
+        ..add('%' + term + '%')
+        ..add('%' + term + '%')
+        ..add('%' + term + '%');
+    }
+
+    final rows = await db.rawQuery(
+      'SELECT m.*, l.name AS law_name, b.label AS bab_label, '
+      'f.label AS fasl_label '
+      'FROM mawad m JOIN laws l ON l.id = m.law_id '
+      'LEFT JOIN abwab b ON b.id = m.bab_id '
+      'LEFT JOIN fusul f ON f.id = m.fasl_id '
+      'WHERE ' +
+          clauses +
+          ' ORDER BY l.order_num, m.order_num LIMIT ?',
+      [...args, limit],
+    );
+
+    return rows.map(Madda.fromMap).toList();
+  }
+
+  String _normalizeAssistantTerm(String value) {
+    return value
+        .toLowerCase()
+        .replaceAll(RegExp(r'[ً-ٟ]'), '')
+        .replaceAll(RegExp(r'[إأآٱ]'), 'ا')
+        .replaceAll('ى', 'ي')
+        .replaceAll('ة', 'ه')
+        .replaceAll('ـ', '')
+        .trim();
+  }
+
+  static const Set<String> _assistantStopWords = {
+    'ما',
+    'ماذا',
+    'هل',
+    'هو',
+    'هي',
+    'هذا',
+    'هذه',
+    'ذلك',
+    'تلك',
+    'من',
+    'في',
+    'فيه',
+    'عن',
+    'على',
+    'الى',
+    'إلى',
+    'مع',
+    'لي',
+    'لدي',
+    'اريد',
+    'أريد',
+    'يمكن',
+    'كيف',
+    'متى',
+    'أين',
+    'اين',
+  };
+
+  // ---------------------------------------------------------------------
   // المفضلة
   // ---------------------------------------------------------------------
 

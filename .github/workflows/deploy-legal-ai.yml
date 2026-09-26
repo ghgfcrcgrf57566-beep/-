@@ -93,12 +93,9 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx wrangler deploy
 
-      - name: Verify Worker health
+      - name: Verify Legal AI endpoints
         if: steps.cloudflare.outputs.configured == 'true'
         env:
           LEGAL_AI_BASE_URL: https://odd-mouse-c1e0.ghgfcrcgrf57566.workers.dev
-        run: |
-          set -e
-          response="$(curl --fail --silent --show-error --location --max-time 30 "$LEGAL_AI_BASE_URL/health")"
-          echo "$response"
-          echo "$response" | grep -q '"ok"[[:space:]]*:[[:space:]]*true'
+          APP_VERSION: 1.0.0
+        run: bash backend/legal-ai/scripts/test-endpoints.sh

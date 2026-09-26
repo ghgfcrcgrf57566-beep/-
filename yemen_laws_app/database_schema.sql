@@ -62,6 +62,9 @@ CREATE TABLE reading_history (
 CREATE TABLE search_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     query TEXT NOT NULL,
+    response TEXT,
+    source TEXT NOT NULL DEFAULT 'local_db',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     searched_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
