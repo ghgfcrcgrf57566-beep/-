@@ -38,6 +38,7 @@ type ChatRequestBody = {
   conversation_id?: unknown;
   history?: unknown;
   language?: unknown;
+  fallback_from_local?: unknown;
 };
 
 const HEADERS = {
@@ -49,6 +50,7 @@ const HEADERS = {
 };
 
 const SYSTEM = "أنت مساعد قانوني لموسوعة القوانين اليمنية. أجب بالعربية عند سؤال المستخدم بالعربية. الحقائق القانونية يجب أن تستند حصراً إلى المواد القانونية المسترجعة من قاعدة الموسوعة. لا تستخدم سجل المحادثة كمصدر قانوني؛ استخدمه فقط لفهم سياق السؤال والمتابعة. لا تخترع قانوناً أو رقم مادة أو نصاً قانونياً أو مصدراً. إذا كانت المواد غير كافية فقل ذلك بوضوح. فرّق بين النص القانوني والشرح. لا تقدّم الإجابة باعتبارها حكماً قضائياً أو استشارة قانونية ملزمة.";
+const LOCAL_FALLBACK_SYSTEM = "أنت مساعد قانوني يمني. لم نجد نصاً صريحاً في قاعدة بياناتنا المحلية لهذا السؤال، يرجى تقديم إجابة استشارية قائمة حكراً على التشريعات والقوانين اليمنية النافذة.";
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -135,12 +137,18 @@ async function handleChat(
       );
     }
 
+    const fallbackFromLocal = body.fallback_from_local === true;
+    const systemInstruction = fallbackFromLocal
+      ? SYSTEM + "\n\n" + LOCAL_FALLBACK_SYSTEM
+      : SYSTEM;
+
     const answer = await generateAnswer(
       question,
       language,
       history,
       sources,
       env,
+      systemInstruction,
     );
 
     const responseSources = legacyResponse
@@ -160,6 +168,7 @@ async function handleChat(
       answer,
       sources: responseSources,
       conversation_id: conversationId,
+      response_source: "gemini_ai",
     });
   } catch (error) {
     if (error instanceof AIProviderError) {
@@ -422,11 +431,12 @@ async function generateAnswer(
   history: HistoryMessage[],
   sources: Source[],
   env: Env,
+  systemInstruction: string,
 ): Promise<string> {
   const provider = createAIProvider(env);
 
   return provider.generateAnswer({
-    systemInstruction: SYSTEM,
+    systemInstruction,
     language,
     question,
     history,
