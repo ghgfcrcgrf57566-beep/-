@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme.dart';
+import '../../services/chat_history_db.dart';
 import '../../services/legal_ai_service.dart';
 import '../article/article_detail_screen.dart';
 
@@ -12,6 +13,7 @@ class _LegalAiScreenState extends State<LegalAiScreen> {
   final c=TextEditingController();
   final scroll=ScrollController();
   final service=LegalAiService.instance;
+  final historyDb=ChatHistoryDb.instance;
   final messages=<_Msg>[];
   bool loading=false;
   String? conversationId;
@@ -45,6 +47,96 @@ class _LegalAiScreenState extends State<LegalAiScreen> {
     }
   }
 
+  Future<void> _showHistory() async {
+    if (loading) return;
+
+    try {
+      final entries = await historyDb.getHistory(limit: 50);
+      if (!mounted) return;
+
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (sheetContext) {
+          if (entries.isEmpty) {
+            return const SafeArea(
+              child: Padding(
+                padding: EdgeInsets.all(28),
+                child: Center(child: Text('لا يوجد سجل بحوث حتى الآن.')),
+              ),
+            );
+          }
+
+          return SafeArea(
+            child: SizedBox(
+              height: MediaQuery.of(sheetContext).size.height * .72,
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 20),
+                itemCount: entries.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 6),
+                itemBuilder: (_, index) {
+                  final entry = entries[index];
+                  return Card(
+                    child: ListTile(
+                      title: Text(
+                        entry.query,
+                        textAlign: TextAlign.right,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        entry.response.isEmpty
+                            ? entry.sourceLabel
+                            : entry.sourceLabel + ' — ' + entry.response,
+                        textAlign: TextAlign.right,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: Icon(
+                        entry.source == 'local_db'
+                            ? Icons.menu_book_rounded
+                            : Icons.auto_awesome_rounded,
+                        color: context.accent,
+                      ),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        c.text = entry.query;
+                        if (entry.response.isNotEmpty) {
+                          setState(() {
+                            messages
+                              ..clear()
+                              ..add(_Msg.user(entry.query))
+                              ..add(
+                                _Msg.answer(
+                                  LegalAiResult(
+                                    answer: entry.response,
+                                    sources: const [],
+                                    conversationId: null,
+                                    responseSource: entry.source,
+                                  ),
+                                ),
+                              );
+                          });
+                          _end();
+                        }
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
+        },
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذر فتح سجل البحوث حالياً.')),
+      );
+    }
+  }
+
   void newChat(){
     if(loading)return;
     setState((){messages.clear();conversationId=null;c.clear();});
@@ -59,6 +151,11 @@ class _LegalAiScreenState extends State<LegalAiScreen> {
       title:const Text('مساعد موسوعة القوانين'),
       centerTitle:true,
       actions:[
+        IconButton(
+          tooltip:'سجل البحوث',
+          onPressed:loading?null:_showHistory,
+          icon:const Icon(Icons.history_rounded),
+        ),
         IconButton(
           tooltip:'محادثة جديدة',
           onPressed:loading?null:newChat,
@@ -156,11 +253,28 @@ class _Message extends StatelessWidget{
           ]),
           const SizedBox(height:7),
           SelectableText(m.text,textAlign:TextAlign.right,style:TextStyle(color:context.textPrimary,height:1.7)),
-          if(m.result!=null&&m.result!.sources.isNotEmpty)...[
-            const SizedBox(height:16),
-            Text('المصادر القانونية',textAlign:TextAlign.right,style:TextStyle(fontWeight:FontWeight.w900,color:context.textPrimary)),
-            const SizedBox(height:8),
-            for(final s in m.result!.sources)_Source(s:s),
+          if(m.result!=null)...[
+            const SizedBox(height:12),
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(
+                m.result!.responseSource == 'local_db'
+                    ? 'المصدر: قاعدة القوانين المحلية'
+                    : 'المصدر: Gemini AI بعد عدم العثور على نص محلي',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: context.textSecondary,
+                ),
+              ),
+            ),
+            if(m.result!.sources.isNotEmpty)...[
+              const SizedBox(height:16),
+              Text('المصادر القانونية',textAlign:TextAlign.right,style:TextStyle(fontWeight:FontWeight.w900,color:context.textPrimary)),
+              const SizedBox(height:8),
+              for(final s in m.result!.sources)_Source(s:s),
+            ],
           ]
         ]),
       ),
