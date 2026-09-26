@@ -22,10 +22,15 @@ class _LegalAiScreenState extends State<LegalAiScreen> {
     if(loading) return;
     final q=c.text.trim();
     if(q.isEmpty)return;
+    final history=messages
+        .where((m)=>m.role=='user'||m.role=='assistant')
+        .take(12)
+        .map((m)=>{'role':m.role,'content':m.text})
+        .toList();
+
     setState((){messages.add(_Msg.user(q));c.clear();loading=true;});
     _end();
     try{
-      final history=messages.take(12).map((m)=>{'role':m.role,'content':m.text}).toList();
       final r=await service.ask(question:q,conversationId:conversationId,history:history);
       conversationId ??= r.conversationId;
       if(mounted)setState(()=>messages.add(_Msg.answer(r)));
@@ -166,6 +171,10 @@ class _Source extends StatelessWidget{
       onTap:()=>Navigator.of(context).push(MaterialPageRoute(builder:(_)=>ArticleDetailScreen(maddaId:s.articleId))),
       child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.end,children:[
         Text(s.lawName,textAlign:TextAlign.right,style:TextStyle(fontWeight:FontWeight.w800,color:context.accent)),
+        if(s.reference != null && s.reference!.trim().isNotEmpty) ...[
+          const SizedBox(height:4),
+          Text(s.reference!,textAlign:TextAlign.right,style:TextStyle(color:context.textSecondary,fontSize:11)),
+        ],
         const SizedBox(height:4),
         Text('المادة: ${s.articleNumber}',textAlign:TextAlign.right,style:TextStyle(fontWeight:FontWeight.w700,color:context.textPrimary)),
         const SizedBox(height:7),
