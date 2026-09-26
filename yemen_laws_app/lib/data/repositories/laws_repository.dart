@@ -367,10 +367,30 @@ class LawsRepository {
   Future<void> recordSearch(String query) async {
     if (query.trim().isEmpty) return;
     final db = await _db;
+    final value = query.trim();
     await db.insert('search_history', {
-      'query': query.trim(),
+      'query': value,
       'searched_at': DateTime.now().toIso8601String(),
     });
+    await db.rawDelete('''
+      DELETE FROM search_history WHERE id NOT IN (
+        SELECT id FROM search_history ORDER BY searched_at DESC LIMIT 30
+      )
+    ''');
+  }
+
+  Future<List<String>> getSearchHistory({int limit = 8}) async {
+    final db = await _db;
+    final rows = await db.query(
+      'search_history',
+      columns: ['query'],
+      orderBy: 'searched_at DESC',
+      limit: limit,
+    );
+    return rows
+        .map((row) => ${row['query'] ?? ''}.trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
   }
 
   // ---------------------------------------------------------------------
