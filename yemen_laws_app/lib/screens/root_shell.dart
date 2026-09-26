@@ -69,8 +69,8 @@ class RootShell extends StatelessWidget {
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.light,
         statusBarBrightness: Brightness.dark,
-        navigationBarColor: Color(0xFF120B08),
-        navigationBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: Color(0xFF120B08),
+        systemNavigationBarIconBrightness: Brightness.light,
       ),
       child: Scaffold(
         backgroundColor: const Color(0xFF120B08),
@@ -154,7 +154,7 @@ class _HomeTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      ${AppConstants.appNameAr},
+      AppConstants.appNameAr,
       textAlign: TextAlign.center,
       style: const TextStyle(
         color: Color(0xFFE2BA70),
