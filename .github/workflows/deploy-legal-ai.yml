@@ -35,8 +35,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: backend/legal-ai/package-lock.json
 
       - name: Install backend dependencies
         if: steps.cloudflare.outputs.configured == 'true'
