@@ -307,18 +307,38 @@ class _GoldIcon extends StatelessWidget {
               Color(0xFF6E461C),
             ],
           ).createShader(rect),
-          child: Icon(
-            icon,
-            size: 46,
-            color: Colors.white,
-            shadows: const [
-              Shadow(
-                color: Color(0xAA2A1808),
-                blurRadius: 5,
-                offset: Offset(1, 3),
-              ),
-            ],
-          ),
+          child: icon == Icons.support_agent_rounded
+              ? const Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(
+                      Icons.phone_in_talk_rounded,
+                      size: 43,
+                      color: Colors.white,
+                    ),
+                    Positioned(
+                      bottom: 6,
+                      right: 7,
+                      child: Icon(
+                        Icons.balance_rounded,
+                        size: 22,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                )
+              : Icon(
+                  icon,
+                  size: 46,
+                  color: Colors.white,
+                  shadows: const [
+                    Shadow(
+                      color: Color(0xAA2A1808),
+                      blurRadius: 5,
+                      offset: Offset(1, 3),
+                    ),
+                  ],
+                ),
         ),
       ),
     );
