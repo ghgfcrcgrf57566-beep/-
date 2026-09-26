@@ -2,118 +2,178 @@
 
 ## Architecture
 
-Flutter -> HTTPS Cloudflare Worker -> D1 lexical retrieval + Vectorize semantic retrieval -> Workers AI -> Arabic answer + cited legal sources.
+Flutter -> HTTPS Cloudflare Worker -> D1 + Vectorize retrieval -> Gemini Provider -> Arabic answer + legal sources.
 
-The original SQLite database remains unchanged. The mobile app continues to use it for offline browsing and source opening.
+The local SQLite database remains the source of truth for the mobile app. D1 is a server-side retrieval copy.
 
-## Existing legal database
+## Legal corpus
 
-The app is Flutter. The legal corpus is the existing SQLite asset:
+Source:
 
 yemen_laws_app/assets/db/app_database.db
 
-The schema contains laws, abwab, fusul and mawad. Each article is represented by law_id, number and body, with hierarchy references.
+Legal tables:
 
-The local repository already provides FTS5 search through LawsRepository. The AI backend adds a separate retrieval layer rather than changing the source database.
+- laws
+- abwab
+- fusul
+- mawad
 
-## Backend
+Use yemen_laws_app/tools/export_rag_data.py to export these tables while preserving IDs and original Arabic text.
 
-Location: backend/legal-ai
+Do not replace the schema with a simplified experimental schema.
 
-Cloudflare services:
-- Workers: HTTPS API
-- D1: server-side copy of the legal corpus for retrieval
-- Vectorize: semantic article embeddings
-- Workers AI: multilingual embeddings and answer generation
+## Backend API
 
-Cloudflare documents Vectorize + Workers AI as a supported RAG architecture. The bge-m3 model is multilingual and is used here for Arabic semantic retrieval. Verify the model vector dimension in the Cloudflare catalog before creating the index because Vectorize dimensions are fixed.
+Primary endpoint:
 
-## Initial setup
+POST /api/chat
 
-The production Worker name is `odd-mouse-c1e0`. The D1 binding is `yemen_laws_db` and the Vectorize index is `yemen-laws-articles`. The repository configuration points to the D1 database ID supplied for this deployment; Cloudflare must still confirm that the ID exists in the target account.
+Request:
 
-1. Install Node.js 18+ and Wrangler.
-2. cd backend/legal-ai
-3. npm install
-4. Create D1: npx wrangler d1 create yemen_laws_db
-5. Put the returned database_id into wrangler.toml.
-6. Create Vectorize. For bge-m3, use the dimension reported by the current Cloudflare model catalog: npx wrangler vectorize create yemen-laws-articles --dimensions=1024 --metric=cosine
-7. Apply schema: npx wrangler d1 execute yemen_laws_db --remote --file=schema.sql
-8. Export the unchanged mobile database: python3 ../../yemen_laws_app/tools/export_rag_data.py --db ../../yemen_laws_app/assets/db/app_database.db --out data
+{"message":"ما شروط بطلان العقد؟","conversation_id":"optional-id","language":"ar","history":[]}
 
-The exported JSON files are gitignored because they duplicate the legal corpus.
+Response:
 
-## Importing the corpus
+{"answer":"...","sources":[{"article_id":123,"law_title":"...","article_number":"...","article_text":"...","reference":"..."}],"conversation_id":"..."}
 
-Import laws, abwab, fusul and mawad into D1 while preserving IDs and original text exactly.
-
-Generate one embedding for each article using @cf/baai/bge-m3 and upsert each vector into Vectorize using the article ID as the vector ID. The Worker maps vector matches back to D1 records.
-
-## Semantic index initialization
-
-The protected POST /admin/reindex endpoint embeds batches of existing articles and upserts them into Vectorize. It accepts after and limit query parameters and returns next_after. Keep the reindex token only in deployment secrets. Do not put it in Flutter or Git.
-
-## API
+Compatibility endpoint:
 
 POST /api/legal/ask
 
-Request: {"question":"ما هي شروط الطلاق؟","conversation_id":"optional","history":[]}
+The compatibility endpoint keeps the earlier source field names used by previous app builds.
 
-Response: {"answer":"...","sources":[{"article_id":123,"law_name":"...","article_number":"...","article_text":"..."}]}
+Health:
 
-Errors include empty/oversized questions, unsupported app versions, rate limits and server errors.
+GET /health
 
-## Security
+Expected:
 
-- HTTPS is provided by Cloudflare.
-- No AI provider API key is placed in Flutter.
-- The Worker validates app version and question size.
-- Requests are rate limited to 20 per minute per hashed client IP bucket.
-- The raw client IP is not stored; the Worker stores a SHA-256 hash only.
-- Add Cloudflare WAF/rate-limiting rules before public launch.
-- Never put Cloudflare account tokens or deployment secrets in Git.
+{"ok":true}
+
+## AI provider
+
+The backend uses an abstraction:
+
+/api/chat -> AIProvider -> GeminiProvider
+
+Environment:
+
+AI_PROVIDER=gemini
+AI_MODEL=gemini-3.8-flash
+
+The Gemini API key is server-side only and must be stored as a Cloudflare Worker Secret:
+
+GEMINI_API_KEY
+
+Never put the key in Flutter, Gradle, assets, Git, or workflow logs.
+
+The Android app never needs to know which AI provider is used.
+
+## RAG
+
+Question -> lexical + semantic retrieval -> relevant legal articles -> Gemini -> answer + sources.
+
+Legal facts must come only from retrieved legal material.
+
+Conversation history is context only and is not treated as legal evidence.
+
+When evidence is insufficient, the API returns:
+
+لم أجد معلومات قانونية كافية في قاعدة موسوعة القوانين اليمنية للإجابة عن هذا السؤال.
+
+with an empty sources array.
+
+## Embeddings and Vectorize
+
+Embedding model:
+
+@cf/baai/bge-m3
+
+Vectorize index:
+
+yemen-laws-articles
+
+The current Cloudflare model catalog lists bge-m3 as 1024-dimensional. Vectorize dimensions are fixed when the index is created, so do not change the embedding model/dimensions without rebuilding the index.
+
+Workers AI remains the embedding service; Gemini is the answer-generation provider.
+
+## D1
+
+D1 database:
+
+yemen_laws_db
+
+Schema:
+
+backend/legal-ai/schema.sql
+
+The schema mirrors the legal hierarchy used by the app.
+
+Do not insert invented legal material.
+
+Import from the existing SQLite database and preserve all original IDs and Arabic text.
+
+## Reindexing
+
+POST /admin/reindex is protected by the Cloudflare Worker Secret:
+
+REINDEX_TOKEN
+
+It embeds batches of articles with bge-m3 and upserts them into Vectorize using the article ID.
 
 ## Flutter configuration
 
-The app reads the Worker URL at build time:
+The base URL is centralized in:
+
+yemen_laws_app/lib/core/app_config.dart
+
+Build-time variable:
+
+LEGAL_AI_BASE_URL
+
+The Flutter client sends only HTTPS requests to /api/chat.
+
+Example:
 
 flutter build apk --release --dart-define=LEGAL_AI_BASE_URL=https://odd-mouse-c1e0.ghgfcrcgrf57566.workers.dev
 
-The value is intentionally not hard-coded because the actual deployed Worker URL belongs to the deployment account and must be supplied during deployment.
+## UI
 
-## Theme and navigation
+The existing assistant screen remains in:
 
-The new AI screen uses the existing theme extensions and is reachable from RootShell as a full-width card. It follows light, dark and automatic theme changes without replacing the existing navigation or splash screen.
+yemen_laws_app/lib/screens/legal_ai/legal_ai_screen.dart
 
-Each returned source opens the existing ArticleDetailScreen using the original local article ID.
+It keeps the current theme, RTL layout, conversation UI, loading/error handling and opens returned articles using the existing ArticleDetailScreen.
 
-## Local development
+No application-wide redesign is required.
 
-Mobile: cd yemen_laws_app; flutter pub get; flutter analyze; flutter test.
+## CI
 
-Backend: cd backend/legal-ai; npm install; npm run typecheck; npm run dev
+.github/workflows/main.yml validates HTTPS for LEGAL_AI_BASE_URL, runs Flutter analysis/tests, runs backend TypeScript typecheck, and builds the release APK.
 
-Cloudflare AI/Vectorize functionality should be tested with remote bindings.
+## Production checklist
 
-## Deployment
+Before the assistant can work in production:
 
-1. Configure D1 and Vectorize.
-2. Import the legal corpus.
-3. Generate and upsert article embeddings.
-4. npx wrangler deploy --name odd-mouse-c1e0
-5. Build the APK with the deployed Worker URL using --dart-define.
-6. Test /health, then the Android assistant screen.
+1. D1 schema must be applied.
+2. Legal corpus must be imported from app_database.db.
+3. Vectorize index must exist.
+4. Article embeddings must be generated.
+5. GEMINI_API_KEY must be configured as a Cloudflare Worker Secret.
+6. REINDEX_TOKEN must be configured.
+7. Worker odd-mouse-c1e0 must be deployed with the repository code.
+8. /health and /api/chat must be tested against the deployed Worker.
 
-## Updating the laws
+Repository changes alone do not deploy Cloudflare resources.
 
-Do not edit legal text inside D1 manually. The source of truth remains yemen_laws_app/assets/db/app_database.db.
+## Security
 
-When the corpus is intentionally updated, replace the SQLite asset using the existing database build process, increment dbAssetVersion, export the updated corpus, replace D1 records preserving IDs and text, regenerate affected embeddings, and rebuild the app if its local database changed.
-
-## Changing the AI model
-
-Change AI_MODEL in wrangler.toml to a currently supported Workers AI chat model. Keep EMBEDDING_MODEL compatible with the Vectorize index dimension. If the embedding model changes dimension, create a new Vectorize index and re-embed the corpus.
-
-## Production note
-
-The repository contains the application and backend code, but it must not contain Cloudflare account credentials or an invented deployment URL. Those values are supplied during deployment.
+- HTTPS only.
+- No Gemini key in the APK.
+- Request length validation.
+- Rate limiting.
+- CORS.
+- Safe public error messages.
+- No stack traces or secrets in API responses.
+- Retrieved legal text is treated as data, not instructions.
