@@ -22,8 +22,18 @@ export type AIProviderInput = {
   sources: AIProviderSource[];
 };
 
+export type AIProviderWebSource = {
+  title: string;
+  url: string;
+};
+
+export type AIProviderResult = {
+  answer: string;
+  webSources: AIProviderWebSource[];
+};
+
 export interface AIProvider {
-  generateAnswer(input: AIProviderInput): Promise<string>;
+  generateAnswer(input: AIProviderInput): Promise<AIProviderResult>;
 }
 
 export class AIProviderError extends Error {
