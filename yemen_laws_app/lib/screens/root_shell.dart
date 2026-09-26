@@ -577,8 +577,8 @@ class _HomeFooter extends StatelessWidget {
     return Text(
       '${AppConstants.contactShortName} - ${AppConstants.contactTitleShort} - ${AppConstants.contactPhone}',
       textAlign: TextAlign.center,
-      style: const TextStyle(
-        color: Color(0xFFF0E4D0),
+      style: TextStyle(
+        color: const Color(0xFFF0E4D0),
         fontSize: 15,
         fontWeight: FontWeight.w700,
         height: 1.4,
