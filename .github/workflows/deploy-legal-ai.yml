@@ -102,5 +102,3 @@ jobs:
           response="$(curl --fail --silent --show-error --location --max-time 30 "$LEGAL_AI_BASE_URL/health")"
           echo "$response"
           echo "$response" | grep -q '"ok"[[:space:]]*:[[:space:]]*true'
-
-# redeploy trigger
