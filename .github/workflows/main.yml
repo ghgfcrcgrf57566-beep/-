@@ -47,6 +47,7 @@ jobs:
         run: flutter pub get
 
       - name: Analyze Dart code
+        # Informational lints are non-fatal; real analyzer errors still fail CI.
         run: flutter analyze --no-fatal-infos
 
       - name: Generate Android launcher icons
