@@ -1,3 +1,8 @@
+import {
+  AIProviderError,
+  createAIProvider,
+} from "./ai_provider";
+
 export interface Env {
   DB: D1Database;
   VECTOR_INDEX?: VectorizeIndex;
@@ -6,123 +11,485 @@ export interface Env {
   MAX_QUESTION_CHARS: string;
   MAX_RESULTS: string;
   MIN_RELEVANCE_SCORE: string;
+  AI_PROVIDER: string;
   AI_MODEL: string;
   EMBEDDING_MODEL: string;
-  REINDEX_TOKEN: string;
+  GEMINI_API_KEY?: string;
+  REINDEX_TOKEN?: string;
 }
-type Source={article_id:number;law_name:string;article_number:string;article_text:string;chapter?:string|null;score?:number};
-type HistoryMessage={role:"user"|"assistant";content:string};
 
-const HEADERS={"content-type":"application/json; charset=utf-8","cache-control":"no-store","access-control-allow-origin":"*","access-control-allow-methods":"GET, POST, OPTIONS","access-control-allow-headers":"content-type, x-app-version"};
-const SYSTEM="أنت مساعد قانوني لموسوعة القوانين اليمنية. أجب بالعربية. الحقائق القانونية يجب أن تستند حصراً إلى المواد القانونية المسترجعة من قاعدة الموسوعة. لا تستخدم سجل المحادثة كمصدر قانوني؛ استخدمه فقط لفهم سياق السؤال والمتابعة. لا تخترع قانوناً أو رقم مادة أو نصاً قانونياً. إذا كانت المواد غير كافية فقل ذلك بوضوح. فرّق بين النص القانوني والشرح. لا تقدّم الإجابة باعتبارها استشارة قانونية ملزمة.";
+type Source = {
+  article_id: number;
+  law_name: string;
+  article_number: string;
+  article_text: string;
+  chapter?: string | null;
+  score?: number;
+};
 
-export default {async fetch(request:Request,env:Env):Promise<Response>{
-  const url=new URL(request.url);
-  if(request.method==="OPTIONS") return new Response(null,{status:204,headers:HEADERS});
-  if(url.pathname==="/health") return json({ok:true});
-  if(url.pathname==="/admin/reindex"){
-    if(request.method!=="POST") return json({error:"Method not allowed"},405);
-    if(!env.REINDEX_TOKEN || request.headers.get("authorization")!=="Bearer "+env.REINDEX_TOKEN) return json({error:"Unauthorized"},401);
-    const u=new URL(request.url);
-    const after=Number(u.searchParams.get("after")||0);
-    const limit=Math.min(Math.max(Number(u.searchParams.get("limit")||40),1),60);
-    if(!env.VECTOR_INDEX) return json({error:"Vectorize is not configured."},503);
-    const rows=await env.DB.prepare("SELECT id,law_id,number,body FROM mawad WHERE id>? ORDER BY id LIMIT ?").bind(after,limit).all<any>();
-    const articles=rows.results||[];
-    if(!articles.length) return json({done:true,next_after:after,processed:0});
-    const embeddings=await env.AI.run(env.EMBEDDING_MODEL,{text:articles.map((a:any)=>String(a.body))}) as {data:number[][]};
-    const vectors=articles.map((a:any,i:number)=>({id:String(a.id),values:embeddings.data[i]}));
-    await env.VECTOR_INDEX.upsert(vectors);
-    const next=Number(articles[articles.length-1].id);
-    return json({done:articles.length<limit,next_after:next,processed:articles.length});
-  }
-  if(url.pathname!=="/api/legal/ask") return json({error:"Not found"},404);
-  if(request.method!=="POST") return json({error:"Method not allowed"},405);
+type HistoryMessage = {
+  role: "user" | "assistant";
+  content: string;
+};
 
-  const version=request.headers.get("x-app-version")||"";
-  if(env.ALLOWED_APP_VERSION && version!==env.ALLOWED_APP_VERSION) return json({error:"نسخة التطبيق غير مدعومة حالياً."},403);
-  if(!(await rateLimit(request,env))) return json({error:"تم تجاوز حد الاستخدام مؤقتاً. حاول لاحقاً."},429);
+type ChatRequestBody = {
+  message?: unknown;
+  question?: unknown;
+  conversation_id?: unknown;
+  history?: unknown;
+  language?: unknown;
+};
 
-  try{
-    const body=await request.json() as {question?:unknown;conversation_id?:unknown;history?:unknown};
-    const question=typeof body.question==="string"?body.question.trim():"";
-    const max=Number(env.MAX_QUESTION_CHARS||1200);
-    if(!question) return json({error:"السؤال فارغ."},400);
-    if(question.length>max) return json({error:"السؤال أطول من الحد المسموح."},400);
+const HEADERS = {
+  "content-type": "application/json; charset=utf-8",
+  "cache-control": "no-store",
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-headers": "content-type, x-app-version",
+};
 
-    const history=normalizeHistory(body.history);
-    const sources=await retrieve(question,env);
-    if(!hasEnoughEvidence(sources,env)){
-      return json({
-        answer:"لم أجد معلومات قانونية كافية في قاعدة موسوعة القوانين اليمنية للإجابة عن هذا السؤال.",
-        sources:[],
-        conversation_id:typeof body.conversation_id==="string"&&body.conversation_id.trim()?body.conversation_id:crypto.randomUUID()
-      });
+const SYSTEM = "أنت مساعد قانوني لموسوعة القوانين اليمنية. أجب بالعربية عند سؤال المستخدم بالعربية. الحقائق القانونية يجب أن تستند حصراً إلى المواد القانونية المسترجعة من قاعدة الموسوعة. لا تستخدم سجل المحادثة كمصدر قانوني؛ استخدمه فقط لفهم سياق السؤال والمتابعة. لا تخترع قانوناً أو رقم مادة أو نصاً قانونياً أو مصدراً. إذا كانت المواد غير كافية فقل ذلك بوضوح. فرّق بين النص القانوني والشرح. لا تقدّم الإجابة باعتبارها حكماً قضائياً أو استشارة قانونية ملزمة.";
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
+
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: HEADERS });
     }
-    const answer=await generate(question,history,sources,env);
-    return json({answer,sources,conversation_id:typeof body.conversation_id==="string"&&body.conversation_id.trim()?body.conversation_id:crypto.randomUUID()});
-  }catch(e){console.error(e);return json({error:"حدث خطأ داخلي أثناء معالجة السؤال."},500);}
-}};
 
-function normalizeHistory(value:unknown):HistoryMessage[]{
-  if(!Array.isArray(value)) return [];
-  return value.filter((m:any)=>m&&((m.role==="user")||(m.role==="assistant"))&&typeof m.content==="string")
-    .map((m:any)=>({role:m.role,content:m.content.trim().slice(0,2000)}))
-    .filter(m=>m.content).slice(-12);
+    if (url.pathname === "/health") {
+      return json({ ok: true });
+    }
+
+    if (url.pathname === "/admin/reindex") {
+      return handleReindex(request, env, url);
+    }
+
+    if (url.pathname === "/api/chat" || url.pathname === "/api/legal/ask") {
+      if (request.method !== "POST") {
+        return json({ error: "Method not allowed" }, 405);
+      }
+      return handleChat(request, env, url.pathname === "/api/legal/ask");
+    }
+
+    return json({ error: "Not found" }, 404);
+  },
+};
+
+async function handleChat(
+  request: Request,
+  env: Env,
+  legacyResponse: boolean,
+): Promise<Response> {
+  const version = request.headers.get("x-app-version") || "";
+  if (env.ALLOWED_APP_VERSION && version !== env.ALLOWED_APP_VERSION) {
+    return json({ error: "نسخة التطبيق غير مدعومة حالياً." }, 403);
+  }
+
+  if (!(await rateLimit(request, env))) {
+    return json({ error: "تم تجاوز حد الاستخدام مؤقتاً. حاول لاحقاً." }, 429);
+  }
+
+  try {
+    const body = await request.json() as ChatRequestBody;
+    const rawQuestion =
+      typeof body.message === "string"
+        ? body.message
+        : typeof body.question === "string"
+          ? body.question
+          : "";
+
+    const question = rawQuestion.trim();
+    const max = Number(env.MAX_QUESTION_CHARS || 1200);
+
+    if (!question) {
+      return json({ error: "السؤال فارغ." }, 400);
+    }
+
+    if (question.length > max) {
+      return json({ error: "السؤال أطول من الحد المسموح." }, 400);
+    }
+
+    const history = normalizeHistory(body.history);
+    const language =
+      typeof body.language === "string" && body.language.trim()
+        ? body.language.trim().slice(0, 16)
+        : "ar";
+
+    const conversationId =
+      typeof body.conversation_id === "string" && body.conversation_id.trim()
+        ? body.conversation_id.trim().slice(0, 128)
+        : crypto.randomUUID();
+
+    const sources = await retrieve(question, env);
+
+    if (!hasEnoughEvidence(sources, env)) {
+      const answer =
+        "لم أجد معلومات قانونية كافية في قاعدة موسوعة القوانين اليمنية للإجابة عن هذا السؤال.";
+
+      return json(
+        legacyResponse
+          ? { answer, sources: [], conversation_id: conversationId }
+          : { answer, sources: [], conversation_id: conversationId },
+      );
+    }
+
+    const answer = await generateAnswer(
+      question,
+      language,
+      history,
+      sources,
+      env,
+    );
+
+    const responseSources = legacyResponse
+      ? sources
+      : sources.map((source) => ({
+          article_id: source.article_id,
+          law_title: source.law_name,
+          law_name: source.law_name,
+          article_number: source.article_number,
+          article_text: source.article_text,
+          reference: `${source.law_name} — المادة ${source.article_number}`,
+          chapter: source.chapter,
+          score: source.score,
+        }));
+
+    return json({
+      answer,
+      sources: responseSources,
+      conversation_id: conversationId,
+    });
+  } catch (error) {
+    if (error instanceof AIProviderError) {
+      return json({ error: error.userMessage }, 503);
+    }
+
+    console.error(
+      "Legal AI request failed",
+      error instanceof Error ? error.message : String(error),
+    );
+    return json({ error: "حدث خطأ داخلي أثناء معالجة السؤال." }, 500);
+  }
 }
-function hasEnoughEvidence(sources:Source[],env:Env){
-  if(!sources.length) return false;
-  const threshold=Number(env.MIN_RELEVANCE_SCORE||0.15);
-  return Number(sources[0].score||0)>=threshold;
+
+async function handleReindex(
+  request: Request,
+  env: Env,
+  url: URL,
+): Promise<Response> {
+  if (request.method !== "POST") {
+    return json({ error: "Method not allowed" }, 405);
+  }
+
+  if (
+    !env.REINDEX_TOKEN ||
+    request.headers.get("authorization") !== `Bearer ${env.REINDEX_TOKEN}`
+  ) {
+    return json({ error: "Unauthorized" }, 401);
+  }
+
+  if (!env.VECTOR_INDEX) {
+    return json({ error: "Vectorize is not configured." }, 503);
+  }
+
+  try {
+    const after = Number(url.searchParams.get("after") || 0);
+    const limit = Math.min(
+      Math.max(Number(url.searchParams.get("limit") || 40), 1),
+      60,
+    );
+
+    const rows = await env.DB
+      .prepare(
+        "SELECT id,law_id,number,body FROM mawad WHERE id>? ORDER BY id LIMIT ?",
+      )
+      .bind(after, limit)
+      .all<{ id: number; law_id: number; number: string; body: string }>();
+
+    const articles = rows.results || [];
+    if (!articles.length) {
+      return json({ done: true, next_after: after, processed: 0 });
+    }
+
+    const embeddings = await env.AI.run(
+      env.EMBEDDING_MODEL,
+      { text: articles.map((article) => String(article.body)) },
+    ) as { data: number[][] };
+
+    const vectors = articles.map((article, index) => ({
+      id: String(article.id),
+      values: embeddings.data[index],
+    }));
+
+    await env.VECTOR_INDEX.upsert(vectors);
+
+    const next = Number(articles[articles.length - 1].id);
+    return json({
+      done: articles.length < limit,
+      next_after: next,
+      processed: articles.length,
+    });
+  } catch (error) {
+    console.error(
+      "Reindex failed",
+      error instanceof Error ? error.message : String(error),
+    );
+    return json({ error: "تعذر تحديث الفهرس الدلالي حالياً." }, 500);
+  }
 }
-async function retrieve(q:string,env:Env){
-  const limit=Math.min(Math.max(Number(env.MAX_RESULTS||8),3),12);
-  const [semantic,lexical]=await Promise.all([semanticSearch(q,env,limit),lexicalSearch(q,env,limit)]);
-  const map=new Map<number,Source>();
-  for(const x of [...semantic,...lexical]){const old=map.get(x.article_id);if(!old||(x.score||0)>(old.score||0))map.set(x.article_id,x);}
-  return [...map.values()].sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,limit);
+
+function normalizeHistory(value: unknown): HistoryMessage[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter(
+      (message: any) =>
+        message &&
+        (message.role === "user" || message.role === "assistant") &&
+        typeof message.content === "string",
+    )
+    .map((message: any) => ({
+      role: message.role,
+      content: message.content.trim().slice(0, 2000),
+    }))
+    .filter((message) => message.content)
+    .slice(-12);
 }
-async function semanticSearch(q:string,env:Env,limit:number):Promise<Source[]>{
-  if(!env.VECTOR_INDEX)return [];
-  try{
-    const emb=await env.AI.run(env.EMBEDDING_MODEL,{text:[q]}) as {data:number[][]};
-    const vector=emb.data?.[0]; if(!vector)return [];
-    const result=await env.VECTOR_INDEX.query(vector,{topK:limit,returnMetadata:"none"});
-    const ids=(result.matches||[]).map((m:any)=>Number(m.id)).filter(Number.isFinite);
-    if(!ids.length)return [];
-    const ph=ids.map(()=>"?").join(",");
-    const rows=await env.DB.prepare("SELECT m.id article_id,l.name law_name,m.number article_number,m.body article_text,COALESCE(f.label,b.label) chapter FROM mawad m JOIN laws l ON l.id=m.law_id LEFT JOIN fusul f ON f.id=m.fasl_id LEFT JOIN abwab b ON b.id=m.bab_id WHERE m.id IN ("+ph+")").bind(...ids).all<Source>();
-    const scores=new Map((result.matches||[]).map((m:any)=>[Number(m.id),Number(m.score||0)]));
-    return (rows.results||[]).map(r=>({...r,score:scores.get(r.article_id)||0}));
-  }catch(e){console.error("semantic",e);return [];}
+
+function hasEnoughEvidence(sources: Source[], env: Env): boolean {
+  if (!sources.length) {
+    return false;
+  }
+
+  const threshold = Number(env.MIN_RELEVANCE_SCORE || 0.15);
+  return Number(sources[0].score || 0) >= threshold;
 }
-async function lexicalSearch(q:string,env:Env,limit:number):Promise<Source[]>{
-  const terms=normalize(q).split(/\s+/).filter(x=>x.length>=2).slice(0,10);
-  if(!terms.length)return [];
-  const clauses=terms.map(()=>"(m.body LIKE ? OR m.number LIKE ? OR l.name LIKE ?)").join(" OR ");
-  const args:string[]=[]; for(const t of terms)args.push("%"+t+"%","%"+t+"%","%"+t+"%");
-  const rows=await env.DB.prepare("SELECT m.id article_id,l.name law_name,m.number article_number,m.body article_text,COALESCE(f.label,b.label) chapter FROM mawad m JOIN laws l ON l.id=m.law_id LEFT JOIN fusul f ON f.id=m.fasl_id LEFT JOIN abwab b ON b.id=m.bab_id WHERE "+clauses+" LIMIT 80").bind(...args).all<Source>();
-  return (rows.results||[]).map(r=>{const hay=normalize(r.law_name+" "+r.article_number+" "+r.article_text);const hits=terms.reduce((n,t)=>n+(hay.includes(t)?1:0),0);return {...r,score:hits/terms.length};}).sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,limit);
+
+async function retrieve(
+  question: string,
+  env: Env,
+): Promise<Source[]> {
+  const limit = Math.min(
+    Math.max(Number(env.MAX_RESULTS || 8), 3),
+    12,
+  );
+
+  const [semantic, lexical] = await Promise.all([
+    semanticSearch(question, env, limit),
+    lexicalSearch(question, env, limit),
+  ]);
+
+  const merged = new Map<number, Source>();
+
+  for (const source of [...semantic, ...lexical]) {
+    const previous = merged.get(source.article_id);
+    if (!previous || (source.score || 0) > (previous.score || 0)) {
+      merged.set(source.article_id, source);
+    }
+  }
+
+  return [...merged.values()]
+    .sort((a, b) => (b.score || 0) - (a.score || 0))
+    .slice(0, limit);
 }
-async function generate(q:string,history:HistoryMessage[],sources:Source[],env:Env):Promise<string>{
-  const context=sources.map((s,i)=>"[مصدر "+(i+1)+"] القانون: "+s.law_name+" | المادة: "+s.article_number+"\nالنص القانوني:\n"+s.article_text).join("\n\n");
-  const historyText=history.length?history.map(m=>m.role==="user"?"المستخدم: "+m.content:"المساعد: "+m.content).join("\n"):"لا يوجد سجل سابق.";
-  const prompt=SYSTEM+"\n\nسجل المحادثة لفهم السياق فقط (ليس مصدراً قانونياً):\n"+historyText+"\n\nالسؤال الحالي:\n"+q+"\n\nالمواد المسترجعة من قاعدة الموسوعة:\n"+context+"\n\nاكتب إجابة عربية واضحة. ابدأ بالجواب المباشر، ثم اذكر المواد المستند إليها. لا تستنتج نصاً قانونياً غير موجود في المصادر. إذا كانت المصادر لا تكفي للإجابة، صرّح بذلك.";
-  const out=await env.AI.run(env.AI_MODEL,{messages:[{role:"system",content:SYSTEM},{role:"user",content:prompt}],max_tokens:900,temperature:0.1}) as any;
-  return typeof out?.response==="string"?out.response.trim():typeof out?.result?.response==="string"?out.result.response.trim():typeof out?.choices?.[0]?.message?.content==="string"?out.choices[0].message.content.trim():"تعذر توليد الإجابة من المواد المسترجعة.";
+
+async function semanticSearch(
+  question: string,
+  env: Env,
+  limit: number,
+): Promise<Source[]> {
+  if (!env.VECTOR_INDEX) {
+    return [];
+  }
+
+  try {
+    const embedding = await env.AI.run(
+      env.EMBEDDING_MODEL,
+      { text: [question] },
+    ) as { data: number[][] };
+
+    const vector = embedding.data?.[0];
+    if (!vector) {
+      return [];
+    }
+
+    const result = await env.VECTOR_INDEX.query(vector, {
+      topK: limit,
+      returnMetadata: "none",
+    });
+
+    const ids = (result.matches || [])
+      .map((match: any) => Number(match.id))
+      .filter(Number.isFinite);
+
+    if (!ids.length) {
+      return [];
+    }
+
+    const placeholders = ids.map(() => "?").join(",");
+    const rows = await env.DB
+      .prepare(
+        "SELECT m.id article_id,l.name law_name,m.number article_number,m.body article_text,COALESCE(f.label,b.label) chapter " +
+        "FROM mawad m JOIN laws l ON l.id=m.law_id " +
+        "LEFT JOIN fusul f ON f.id=m.fasl_id " +
+        "LEFT JOIN abwab b ON b.id=m.bab_id " +
+        "WHERE m.id IN (" + placeholders + ")",
+      )
+      .bind(...ids)
+      .all<Source>();
+
+    const scores = new Map(
+      (result.matches || []).map((match: any) => [
+        Number(match.id),
+        Number(match.score || 0),
+      ]),
+    );
+
+    return (rows.results || []).map((row) => ({
+      ...row,
+      score: scores.get(row.article_id) || 0,
+    }));
+  } catch (error) {
+    console.error(
+      "Semantic retrieval failed",
+      error instanceof Error ? error.message : String(error),
+    );
+    return [];
+  }
 }
-function normalize(v:string){return v.toLowerCase().replace(/[ً-ٟ]/g,"").replace(/[إأآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه").replace(/ـ/g,"").replace(/[^\u0600-\u06FF\w\s]/g," ").replace(/\s+/g," ").trim();}
-async function rateLimit(request:Request,env:Env){
-  const ip=request.headers.get("CF-Connecting-IP")||"unknown";
-  const data=new TextEncoder().encode(ip);
-  const digest=await crypto.subtle.digest("SHA-256",data);
-  const key=[...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,"0")).join("");
-  const bucket=Math.floor(Date.now()/60000);
-  const row=await env.DB.prepare("SELECT count FROM ai_rate_limits WHERE key=? AND bucket=?").bind(key,bucket).first<{count:number}>();
-  const count=(row?.count||0)+1;
-  if(count>20)return false;
-  await env.DB.prepare("INSERT INTO ai_rate_limits(key,bucket,count) VALUES(?,?,?) ON CONFLICT(key,bucket) DO UPDATE SET count=count+1").bind(key,bucket,1).run();
-  await env.DB.prepare("DELETE FROM ai_rate_limits WHERE bucket<?").bind(bucket-2).run();
+
+async function lexicalSearch(
+  question: string,
+  env: Env,
+  limit: number,
+): Promise<Source[]> {
+  const terms = normalize(question)
+    .split(/\s+/)
+    .filter((term) => term.length >= 2)
+    .slice(0, 10);
+
+  if (!terms.length) {
+    return [];
+  }
+
+  const clauses = terms
+    .map(() => "(m.body LIKE ? OR m.number LIKE ? OR l.name LIKE ?)")
+    .join(" OR ");
+
+  const args: string[] = [];
+  for (const term of terms) {
+    args.push(`%${term}%`, `%${term}%`, `%${term}%`);
+  }
+
+  const rows = await env.DB
+    .prepare(
+      "SELECT m.id article_id,l.name law_name,m.number article_number,m.body article_text,COALESCE(f.label,b.label) chapter " +
+      "FROM mawad m JOIN laws l ON l.id=m.law_id " +
+      "LEFT JOIN fusul f ON f.id=m.fasl_id " +
+      "LEFT JOIN abwab b ON b.id=m.bab_id " +
+      "WHERE " + clauses + " LIMIT 80",
+    )
+    .bind(...args)
+    .all<Source>();
+
+  return (rows.results || [])
+    .map((row) => {
+      const haystack = normalize(
+        row.law_name + " " + row.article_number + " " + row.article_text,
+      );
+
+      const hits = terms.reduce(
+        (count, term) => count + (haystack.includes(term) ? 1 : 0),
+        0,
+      );
+
+      return {
+        ...row,
+        score: hits / terms.length,
+      };
+    })
+    .sort((a, b) => (b.score || 0) - (a.score || 0))
+    .slice(0, limit);
+}
+
+async function generateAnswer(
+  question: string,
+  language: string,
+  history: HistoryMessage[],
+  sources: Source[],
+  env: Env,
+): Promise<string> {
+  const provider = createAIProvider(env);
+
+  return provider.generateAnswer({
+    systemInstruction: SYSTEM,
+    language,
+    question,
+    history,
+    sources,
+  });
+}
+
+function normalize(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[ً-ٟ]/g, "")
+    .replace(/[إأآٱ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/ـ/g, "")
+    .replace(/[^\u0600-\u06FF\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function rateLimit(
+  request: Request,
+  env: Env,
+): Promise<boolean> {
+  const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+  const data = new TextEncoder().encode(ip);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  const key = [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+
+  const bucket = Math.floor(Date.now() / 60000);
+  const row = await env.DB
+    .prepare(
+      "SELECT count FROM ai_rate_limits WHERE key=? AND bucket=?",
+    )
+    .bind(key, bucket)
+    .first<{ count: number }>();
+
+  const count = (row?.count || 0) + 1;
+  if (count > 20) {
+    return false;
+  }
+
+  await env.DB
+    .prepare(
+      "INSERT INTO ai_rate_limits(key,bucket,count) VALUES(?,?,?) " +
+      "ON CONFLICT(key,bucket) DO UPDATE SET count=count+1",
+    )
+    .bind(key, bucket, 1)
+    .run();
+
+  await env.DB
+    .prepare("DELETE FROM ai_rate_limits WHERE bucket<?")
+    .bind(bucket - 2)
+    .run();
+
   return true;
 }
-function json(data:unknown,status=200){return new Response(JSON.stringify(data),{status,headers:HEADERS});}
+
+function json(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: HEADERS,
+  });
+}
