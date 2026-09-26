@@ -79,40 +79,6 @@ jobs:
           npm install
           npm run typecheck
 
-      - name: Check Cloudflare deploy secrets
-        id: cloudflare_secrets
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-            echo "Cloudflare deploy secrets are configured."
-          else
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "Cloudflare deploy secrets are not configured; Worker deployment and health check will be skipped."
-          fi
-
-      - name: Deploy legal AI Worker
-        if: steps.cloudflare_secrets.outputs.configured == 'true'
-        working-directory: backend/legal-ai
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          set -e
-          npx wrangler deploy
-
-      - name: Verify legal AI Worker health
-        if: steps.cloudflare_secrets.outputs.configured == 'true'
-        working-directory: yemen_laws_app
-        run: |
-          set -e
-          echo "Checking legal AI Worker: $LEGAL_AI_BASE_URL/health"
-          response=$(curl --fail --silent --show-error --location --max-time 30 "$LEGAL_AI_BASE_URL/health")
-          echo "$response"
-          echo "$response" | grep -q '"ok"[[:space:]]*:[[:space:]]*true'
-
       - name: Build release APK
         run: flutter build apk --release --dart-define=LEGAL_AI_BASE_URL="$LEGAL_AI_BASE_URL"
 
