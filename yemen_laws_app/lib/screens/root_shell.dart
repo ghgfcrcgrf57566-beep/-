@@ -277,7 +277,6 @@ class _HomeTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final settings = context.watch<SettingsProvider>();
     final isDark = context.isDark;
     final modeIcon = isDark
         ? Icons.nightlight_round
@@ -287,7 +286,7 @@ class _HomeTitle extends StatelessWidget {
       textDirection: TextDirection.rtl,
       children: [
         IconButton(
-          tooltip: 'اختيار الوضع: ليلي / نهاري / تلقائي',
+          tooltip: 'اختيار الوضع: ليلي / نهاري',
           onPressed: () => _chooseTheme(context),
           icon: Icon(
             modeIcon,
