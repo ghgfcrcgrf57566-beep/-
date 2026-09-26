@@ -30,13 +30,15 @@ Cloudflare documents Vectorize + Workers AI as a supported RAG architecture. The
 
 ## Initial setup
 
+The production Worker name is `odd-mouse-c1e0`. The D1 binding is `yemen_laws_db` and the Vectorize index is `yemen-laws-articles`. The repository configuration points to the D1 database ID supplied for this deployment; Cloudflare must still confirm that the ID exists in the target account.
+
 1. Install Node.js 18+ and Wrangler.
 2. cd backend/legal-ai
 3. npm install
-4. Create D1: npx wrangler d1 create yemen-laws-rag
+4. Create D1: npx wrangler d1 create yemen_laws_db
 5. Put the returned database_id into wrangler.toml.
 6. Create Vectorize. For bge-m3, use the dimension reported by the current Cloudflare model catalog: npx wrangler vectorize create yemen-laws-articles --dimensions=1024 --metric=cosine
-7. Apply schema: npx wrangler d1 execute yemen-laws-rag --remote --file=schema.sql
+7. Apply schema: npx wrangler d1 execute yemen_laws_db --remote --file=schema.sql
 8. Export the unchanged mobile database: python3 ../../yemen_laws_app/tools/export_rag_data.py --db ../../yemen_laws_app/assets/db/app_database.db --out data
 
 The exported JSON files are gitignored because they duplicate the legal corpus.
@@ -75,7 +77,7 @@ Errors include empty/oversized questions, unsupported app versions, rate limits 
 
 The app reads the Worker URL at build time:
 
-flutter build apk --release --dart-define=LEGAL_AI_BASE_URL=https://YOUR-WORKER.workers.dev
+flutter build apk --release --dart-define=LEGAL_AI_BASE_URL=https://odd-mouse-c1e0.ghgfcrcgrf57566.workers.dev
 
 The value is intentionally not hard-coded because the actual deployed Worker URL belongs to the deployment account and must be supplied during deployment.
 
@@ -98,7 +100,7 @@ Cloudflare AI/Vectorize functionality should be tested with remote bindings.
 1. Configure D1 and Vectorize.
 2. Import the legal corpus.
 3. Generate and upsert article embeddings.
-4. npx wrangler deploy
+4. npx wrangler deploy --name odd-mouse-c1e0
 5. Build the APK with the deployed Worker URL using --dart-define.
 6. Test /health, then the Android assistant screen.
 
